@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busywud | GlowLogic Montessori Sensory Board</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Razorpay Checkout Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  
+  <!-- FontAwesome & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              yellow: '#FFC800',
+              yellowLight: '#FFFBEA',
+              yellowHover: '#E5B400',
+              black: '#111111',
+              cardDark: '#1A1A1A',
+              grayBg: '#F8F9FA'
+            }
+          },
+          fontFamily: {
+            display: ['Fredoka', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif']
+          },
+          keyframes: {
+            marquee: {
+              '0%': { transform: 'translateX(0%)' },
+              '100%': { transform: 'translateX(-50%)' }
+            },
+            riseUp: {
+              '0%': { transform: 'translateY(105vh) scale(0.7)', opacity: '0' },
+              '10%': { opacity: '0.85' },
+              '90%': { opacity: '0.85' },
+              '100%': { transform: 'translateY(-15vh) scale(1.1)', opacity: '0' }
+            }
+          },
+          animation: {
+            'marquee': 'marquee 22s linear infinite',
+            'rise': 'riseUp 7s linear forwards'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    h1, h2, h3, h4, .font-display { font-family: 'Fredoka', sans-serif; }
+    .glass-nav {
+      backdrop-filter: blur(14px);
+    }
+    .passive-bubble {
+      background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.9), rgba(255, 200, 0, 0.45) 45%, rgba(255, 200, 0, 0.15) 70%, rgba(255, 255, 255, 0.6) 100%);
+      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.8), 0 8px 24px rgba(255, 200, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(1px);
+    }
+    .dark .passive-bubble {
+      background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.7), rgba(255, 200, 0, 0.35) 45%, rgba(255, 200, 0, 0.08) 70%, rgba(255, 255, 255, 0.3) 100%);
+      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.5), 0 8px 24px rgba(255, 200, 0, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-brand-grayBg dark:bg-brand-black text-brand-black dark:text-gray-100 flex flex-col min-h-screen selection:bg-brand-yellow selection:text-black transition-colors duration-300">
+
+  <!-- ==================== 10-SECOND PASSIVE BUBBLE OVERLAY ==================== -->
+  <div id="bubbleCanvas" class="fixed inset-0 pointer-events-none z-50 overflow-hidden"></div>
+
+  <!-- ==================== NAVIGATION BAR ==================== -->
+  <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <a href="#" onclick="navigateTo('store')" class="flex items-center gap-2 group">
+        <img src="busywud logo.avif" alt="Busywud Logo" class="h-12 sm:h-14 object-contain group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/180x60/FFC800/111111?text=BusyWud';">
+      </a>
+
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center gap-8 font-semibold text-sm">
+        <a href="#homeSection" class="hover:text-brand-yellow transition-colors">Home</a>
+        <a href="#productSection" class="hover:text-brand-yellow transition-colors">Product</a>
+        <a href="#contactSection" class="hover:text-brand-yellow transition-colors">Contact</a>
+      </nav>
+
+      <!-- Action Cluster: Theme Toggle + Cart + Sign In -->
+      <div class="flex items-center gap-3 sm:gap-4">
+        
+        <!-- Dark / Light Mode Toggle -->
+        <button onclick="toggleDarkMode()" class="p-2.5 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-brand-black dark:text-brand-yellow hover:scale-105 transition-all" title="Toggle theme">
+          <i id="themeIcon" class="fa-solid fa-moon text-base"></i>
+        </button>
+
+        <!-- Cart Button (Shown after login) -->
+        <button id="cartBtn" onclick="toggleCartDrawer(true)" class="hidden relative p-2.5 rounded-2xl bg-brand-yellowLight dark:bg-zinc-800 text-brand-black dark:text-brand-yellow hover:bg-brand-yellow hover:text-brand-black transition-all">
+          <i class="fa-solid fa-basket-shopping text-base"></i>
+          <span id="cartCountBadge" class="absolute -top-1 -right-1 bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white dark:border-brand-black">0</span>
+        </button>
+
+        <!-- Sign In Dynamic Container -->
+        <div id="authSlot">
+          <button onclick="openAuthModal('signin')" class="bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black hover:bg-zinc-800 dark:hover:bg-brand-yellowHover font-semibold text-sm px-4 sm:px-5 py-2.5 rounded-2xl shadow transition-all flex items-center gap-2">
+            <i class="fa-regular fa-user"></i> <span>Sign In</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN STOREFRONT ==================== -->
+  <main id="storeView" class="flex-grow">
+    
+    <!-- 1. VIDEO SECTION (DIRECTLY UNDER NAVBAR) -->
+    <section id="homeSection" class="relative bg-white dark:bg-zinc-950 border-b border-gray-100 dark:border-zinc-800 py-8 sm:py-12 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-2xl mx-auto mb-6">
+          <span class="inline-flex items-center gap-2 bg-brand-yellow text-brand-black font-display font-bold text-xs uppercase px-4 py-1.5 rounded-full shadow-sm mb-2">
+            <i class="fa-solid fa-circle-play"></i> Watch Real Montessori Discovery
+          </span>
+          <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+            Little Hands, <span class="text-brand-yellow">Big Discoveries</span>
+          </h1>
+          <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-2">
+            See how children naturally learn circuits, tactile switches, and independent logic.
+          </p>
+        </div>
+
+        <!-- Video Frame -->
+        <div class="max-w-4xl mx-auto bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-brand-yellow relative">
+          <video id="glowlogicVideo" autoplay loop muted playsinline controls preload="auto" class="w-full aspect-video object-cover">
+            <!-- Ensure generate_a_video.mp4 is in your directory -->
+            <source src="generate_a_video.mp4" type="video/mp4">
+            <source src="glowlogiSFc-play.mp4" type="video/mp4">
+          </video>
+          <div class="absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-2 pointer-events-none">
+            <span class="w-2.5 h-2.5 rounded-full bg-brand-yellow animate-ping"></span> Live Action
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. CONTENT BREAK 1: MONTESSORI SENSORY PILLARS -->
+    <section class="py-14 bg-brand-grayBg dark:bg-brand-black border-b border-gray-100 dark:border-zinc-800 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-xl mx-auto mb-10">
+          <h2 class="text-2xl sm:text-3xl font-extrabold">Why GlowLogic Works</h2>
+          <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Engineered according to early tactile development milestones</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bg-white dark:bg-brand-cardDark p-6 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm">
+            <div class="w-12 h-12 rounded-2xl bg-brand-yellow flex items-center justify-center text-brand-black text-xl mb-4 font-bold">
+              <i class="fa-solid fa-key"></i>
+            </div>
+            <h3 class="font-bold text-base mb-1">Rotational Wrist Grip</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">The dedicated dual-key safety lock builds finger pinch dexterity needed for pencil gripping.</p>
+          </div>
+
+          <div class="bg-white dark:bg-brand-cardDark p-6 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm">
+            <div class="w-12 h-12 rounded-2xl bg-brand-yellow flex items-center justify-center text-brand-black text-xl mb-4 font-bold">
+              <i class="fa-solid fa-lightbulb"></i>
+            </div>
+            <h3 class="font-bold text-base mb-1">Cause & Effect Circuits</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Flipping toggle levers illuminates responsive LED diodes, teaching mechanical feedback.</p>
+          </div>
+
+          <div class="bg-white dark:bg-brand-cardDark p-6 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm">
+            <div class="w-12 h-12 rounded-2xl bg-brand-yellow flex items-center justify-center text-brand-black text-xl mb-4 font-bold">
+              <i class="fa-solid fa-tree"></i>
+            </div>
+            <h3 class="font-bold text-base mb-1">100% Solid Hardwood</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Hand-sanded birch ply with smooth rounded edges, odorless natural oils, and zero plastic burrs.</p>
+          </div>
+
+          <div class="bg-white dark:bg-brand-cardDark p-6 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm">
+            <div class="w-12 h-12 rounded-2xl bg-brand-yellow flex items-center justify-center text-brand-black text-xl mb-4 font-bold">
+              <i class="fa-solid fa-battery-half"></i>
+            </div>
+            <h3 class="font-bold text-base mb-1">Safe Battery Chamber</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Dual screw-locked rear battery enclosure prevents accidental toddler access to cells.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. CONTENT BREAK 2: COMPARISON TABLE (SCREENS VS BUSYWUD) -->
+    <section class="py-14 bg-white dark:bg-zinc-950 border-b border-gray-100 dark:border-zinc-800 transition-colors">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
+          <span class="bg-brand-yellowLight dark:bg-zinc-800 text-brand-black dark:text-brand-yellow px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">The Smart Switch</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold mt-2">Mobile Screens vs. Busywud GlowLogic</h2>
+        </div>
+
+        <div class="bg-brand-grayBg dark:bg-brand-cardDark rounded-3xl p-6 sm:p-8 border border-gray-100 dark:border-zinc-800 shadow-sm overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 dark:border-zinc-700">
+                <th class="pb-3 font-bold text-gray-400 uppercase text-[11px]">Feature</th>
+                <th class="pb-3 font-bold text-red-500">Smartphones & Tablets</th>
+                <th class="pb-3 font-bold text-brand-yellow">Busywud GlowLogic</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-zinc-800">
+              <tr>
+                <td class="py-3.5 font-semibold">Sensory Stimulation</td>
+                <td class="py-3.5 text-gray-500 dark:text-gray-400">Passive blue-light strain</td>
+                <td class="py-3.5 font-bold text-emerald-600 dark:text-emerald-400">Tactile & mechanical feedback</td>
+              </tr>
+              <tr>
+                <td class="py-3.5 font-semibold">Fine Motor Exercise</td>
+                <td class="py-3.5 text-gray-500 dark:text-gray-400">Flat tap & continuous swipe</td>
+                <td class="py-3.5 font-bold text-emerald-600 dark:text-emerald-400">Turning keys, clicking levers & toggles</td>
+              </tr>
+              <tr>
+                <td class="py-3.5 font-semibold">Tantrum Trigger Risk</td>
+                <td class="py-3.5 text-gray-500 dark:text-gray-400">High dopamine crash upon removal</td>
+                <td class="py-3.5 font-bold text-emerald-600 dark:text-emerald-400">Calm self-guided conclusion</td>
+              </tr>
+              <tr>
+                <td class="py-3.5 font-semibold">Durability</td>
+                <td class="py-3.5 text-gray-500 dark:text-gray-400">Fragile glass prone to shatter</td>
+                <td class="py-3.5 font-bold text-emerald-600 dark:text-emerald-400">Impact-resistant solid birch wood</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRUST STRIP TICKER -->
+    <section class="bg-brand-yellow text-brand-black py-3 overflow-hidden border-b border-black/10">
+      <div class="whitespace-nowrap flex gap-8 animate-marquee text-xs font-bold tracking-wider uppercase">
+        <span><i class="fa-solid fa-shield-heart mr-1"></i> 100% Non-Toxic Hardwood</span>
+        <span>•</span>
+        <span><i class="fa-solid fa-bolt mr-1"></i> Real Circuit LED Feedback</span>
+        <span>•</span>
+        <span><i class="fa-solid fa-truck-fast mr-1"></i> Free Express Shipping Across India</span>
+        <span>•</span>
+        <span><i class="fa-solid fa-star mr-1"></i> 4.9/5 Rating by 3,500+ Indian Parents</span>
+        <span>•</span>
+        <span><i class="fa-solid fa-shield-heart mr-1"></i> 100% Non-Toxic Hardwood</span>
+        <span>•</span>
+        <span><i class="fa-solid fa-bolt mr-1"></i> Real Circuit LED Feedback</span>
+      </div>
+    </section>
+
+    <!-- 4. PRODUCT PURCHASE SECTION -->
+    <section id="productSection" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+        
+        <!-- Product Image Box -->
+        <div class="lg:col-span-6 flex justify-center">
+          <div class="relative w-full max-w-md bg-white dark:bg-zinc-900 border-4 border-brand-yellow rounded-3xl p-5 shadow-xl hover:shadow-2xl transition duration-500">
+            <div class="absolute -top-3.5 -left-3 bg-brand-yellow text-brand-black font-display font-bold text-xs uppercase py-1.5 px-4 rounded-full shadow border border-black/10">
+              <i class="fa-solid fa-bolt"></i> Complete Set
+            </div>
+            <img id="storeProductImg" src="glowlogic busy board.webp" alt="GlowLogic Busy Board" class="w-full h-auto rounded-2xl object-cover hover:scale-[1.02] transition-transform duration-300" onerror="this.src='https://placehold.co/600x600/FFC800/111111?text=GlowLogic+Board';">
+          </div>
+        </div>
+
+        <!-- Purchase Panel -->
+        <div class="lg:col-span-6 flex flex-col justify-center space-y-6">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span id="storeProductBadge" class="bg-brand-yellow text-brand-black font-display font-bold text-xs tracking-wider uppercase px-3 py-1 rounded-lg">
+                Ages 1 to 4 Years
+              </span>
+              <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> In Stock & Ready to Ship
+              </span>
+            </div>
+            <h2 id="storeProductTitle" class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+              GlowLogic Busy Board
+            </h2>
+            <p class="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">Little Hands, Big Discoveries</p>
+          </div>
+
+          <!-- Price -->
+          <div class="flex items-baseline gap-3">
+            <span id="storeProductPrice" class="text-3xl sm:text-4xl font-extrabold">₹1,499</span>
+            <span id="storeProductOldPrice" class="text-lg text-gray-400 line-through">₹2,499</span>
+            <span class="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-xs font-bold px-2.5 py-1 rounded-full">Save 40%</span>
+          </div>
+
+          <p id="storeProductDesc" class="text-gray-600 dark:text-gray-300 text-sm sm:text-base leading-relaxed">
+            Crafted from 100% non-toxic natural wood with smooth rounded edges. Featuring real LED toggle switches, push buttons, and a safety key switch designed to boost fine motor skills, logic, and hand-eye coordination.
+          </p>
+
+          <!-- Action Buttons -->
+          <div class="pt-2 flex flex-col sm:flex-row gap-3">
+            <button onclick="handleAddToCartClick()" class="flex-1 bg-brand-yellow hover:bg-brand-yellowHover text-brand-black text-sm sm:text-base font-bold py-4 px-6 rounded-2xl shadow-md hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-basket-shopping"></i> Add to Bag
+            </button>
+            <button onclick="handleInstantBuy()" class="flex-1 bg-brand-black dark:bg-zinc-800 hover:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-sm sm:text-base font-bold py-4 px-6 rounded-2xl shadow-md hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-bolt text-brand-yellow"></i> Buy Now
+            </button>
+          </div>
+
+          <!-- Assurances -->
+          <div class="border-t border-gray-200 dark:border-zinc-800 pt-5 grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="p-2 bg-white dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm">
+              <i class="fa-solid fa-truck text-base mb-1 block text-brand-yellow"></i>
+              <span class="font-bold block">Free Delivery</span>
+              <span class="text-[10px] text-gray-400">All India</span>
+            </div>
+            <div class="p-2 bg-white dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm">
+              <i class="fa-solid fa-tree text-base mb-1 block text-brand-yellow"></i>
+              <span class="font-bold block">Natural Wood</span>
+              <span class="text-[10px] text-gray-400">Non-Toxic</span>
+            </div>
+            <div class="p-2 bg-white dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800 shadow-sm">
+              <i class="fa-solid fa-rotate-left text-base mb-1 block text-brand-yellow"></i>
+              <span class="font-bold block">7 Days Return</span>
+              <span class="text-[10px] text-gray-400">Hassle-free</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CONTACT & SUPPORT SECTION -->
+    <section id="contactSection" class="bg-white dark:bg-zinc-950 border-t border-gray-100 dark:border-zinc-800 py-14 transition-colors">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
+          <span class="bg-brand-yellow text-brand-black font-display font-bold text-xs uppercase px-3 py-1 rounded-full">Help & Orders</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold mt-2">Have Questions About GlowLogic?</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Our parenting support team replies within 4 business hours</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div class="p-5 bg-brand-grayBg dark:bg-brand-cardDark rounded-2xl border border-gray-100 dark:border-zinc-800">
+            <i class="fa-solid fa-envelope text-brand-yellow text-xl mb-2"></i>
+            <h4 class="font-bold text-sm">Email Us</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">support@busywud.com</p>
+          </div>
+          <div class="p-5 bg-brand-grayBg dark:bg-brand-cardDark rounded-2xl border border-gray-100 dark:border-zinc-800">
+            <i class="fa-solid fa-phone text-brand-yellow text-xl mb-2"></i>
+            <h4 class="font-bold text-sm">Customer Helpline</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">+91 98765 43210</p>
+          </div>
+          <div class="p-5 bg-brand-grayBg dark:bg-brand-cardDark rounded-2xl border border-gray-100 dark:border-zinc-800">
+            <i class="fa-solid fa-location-dot text-brand-yellow text-xl mb-2"></i>
+            <h4 class="font-bold text-sm">Origin</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Crafted with care in India</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== ADMIN VIEW (busywud.com/admin or #/admin) ==================== -->
+  <main id="adminView" class="hidden flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+    <div class="flex items-center justify-between border-b border-gray-200 dark:border-zinc-800 pb-4 mb-8">
+      <div>
+        <h1 class="text-3xl font-extrabold">Admin Management</h1>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Directly update price, badge, description, and image for the store</p>
+      </div>
+      <button onclick="navigateTo('store')" class="bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black text-xs font-semibold px-4 py-2.5 rounded-xl transition">
+        <i class="fa-solid fa-arrow-left mr-1"></i> Back to Store
+      </button>
+    </div>
+
+    <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/50 rounded-3xl p-6 sm:p-8 shadow-md">
+      <form id="adminProductForm" onsubmit="saveProductChanges(event)" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Product Title</label>
+            <input type="text" id="adminTitle" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Age Recommendation / Badge</label>
+            <input type="text" id="adminBadge" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Selling Price (₹ INR)</label>
+            <input type="number" id="adminPrice" required min="1" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Original Price (₹ INR)</label>
+            <input type="number" id="adminOldPrice" required min="1" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Product Image Path / URL</label>
+          <input type="text" id="adminImg" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Product Description</label>
+          <textarea id="adminDesc" rows="4" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-zinc-800">
+          <button type="button" onclick="resetToDefaults()" class="border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-bold px-5 py-2.5 rounded-xl transition">
+            Reset to Factory Defaults
+          </button>
+          <button type="submit" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold text-sm px-6 py-2.5 rounded-xl transition shadow">
+            Save Product Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- ==================== AUTH MODAL ==================== -->
+  <div id="authModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-brand-cardDark rounded-3xl max-w-sm w-full p-6 sm:p-8 relative shadow-2xl border-4 border-brand-yellow">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 hover:text-black dark:hover:text-white">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="text-center mb-6">
+        <h3 id="modalHeading" class="text-2xl font-extrabold">Sign In</h3>
+        <p id="modalSubheading" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Unlock your cart and quick checkout</p>
+      </div>
+
+      <!-- Google Sign In -->
+      <button onclick="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 border-2 border-gray-200 dark:border-zinc-700 py-2.5 rounded-xl text-sm font-semibold hover:border-black dark:hover:border-brand-yellow hover:bg-gray-50 dark:hover:bg-zinc-800 transition mb-4">
+        <svg class="w-4 h-4" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Sign in with Google
+      </button>
+
+      <div class="relative flex py-2 items-center mb-4">
+        <div class="flex-grow border-t border-gray-200 dark:border-zinc-700"></div>
+        <span class="flex-shrink mx-3 text-gray-400 text-xs uppercase font-bold">Or Email</span>
+        <div class="flex-grow border-t border-gray-200 dark:border-zinc-700"></div>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+        <div id="signupNameBox" class="hidden">
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+          <input type="text" id="formName" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+          <input type="email" id="formEmail" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Password</label>
+          <input type="password" id="formPass" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+
+        <button type="submit" id="formSubmitBtn" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-xl text-sm transition shadow mt-2">
+          Sign In
+        </button>
+      </form>
+
+      <div class="text-center mt-5 text-xs text-gray-600 dark:text-gray-400">
+        <span id="toggleText">Don't have an account?</span>
+        <button onclick="toggleModalMode()" id="toggleBtn" class="text-brand-black dark:text-brand-yellow font-bold underline ml-1">Create Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CART DRAWER ==================== -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 bg-black/60 hidden flex justify-end">
+    <div class="bg-white dark:bg-brand-cardDark w-full max-w-sm h-full p-6 flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-zinc-800">
+        <h3 class="text-lg font-display font-bold">Your Bag</h3>
+        <button onclick="toggleCartDrawer(false)" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 hover:text-black dark:hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="cartContents" class="flex-grow overflow-y-auto py-6 space-y-4"></div>
+
+      <div class="border-t border-gray-200 dark:border-zinc-800 pt-4">
+        <div class="flex justify-between text-base font-bold mb-4">
+          <span>Total (INR)</span>
+          <span id="cartDrawerTotal">₹0</span>
+        </div>
+        <button onclick="triggerCheckout()" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3.5 rounded-xl transition shadow">
+          Checkout Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-brand-black text-white mt-auto py-8 border-t border-zinc-800">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <p class="font-display text-lg text-brand-yellow mb-1">Busywud</p>
+      <p class="text-xs text-gray-400">Little Hands, Big Discoveries • All Prices in Indian Rupees (₹)</p>
+    </div>
+  </footer>
+
+  <!-- ==================== LOGIC ==================== -->
+  <script>
+    const API_BASE = "http://localhost:8080/api";
+    const RAZORPAY_KEY = "rzp_live_TafLQCc6Jt5AsG";
+
+    let activeProduct = {
+      title: "GlowLogic Busy Board",
+      badge: "Ages 1 to 4 Years",
+      price: 1499,
+      oldPrice: 2499,
+      image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webP",
+      description: "Crafted from 100% natural, non-toxic wood with smooth rounded edges."
+    };
+
+    let currentUser = JSON.parse(localStorage.getItem('busywud_active_user')) || null;
+    let cartQuantity = parseInt(localStorage.getItem('busywud_cart_qty')) || 0;
+    let authMode = 'signin';
+
+    // Fetch product live from MongoDB
+    async function loadProductFromMongo() {
+      try {
+        const res = await fetch(`${API_BASE}/product`);
+        if (res.ok) {
+          activeProduct = await res.json();
+          renderStoreProduct();
+        }
+      } catch (err) {
+        console.warn("Could not reach backend, fallback to local storage:", err);
+        renderStoreProduct();
+      }
+    }
+
+    // Save product to MongoDB via Admin Panel
+    async function saveProductChanges(e) {
+      e.preventDefault();
+      const updated = {
+        title: document.getElementById('adminTitle').value,
+        badge: document.getElementById('adminBadge').value,
+        price: Number(document.getElementById('adminPrice').value),
+        oldPrice: Number(document.getElementById('adminOldPrice').value),
+        image: document.getElementById('adminImg').value,
+        description: document.getElementById('adminDesc').value
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/product`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+        if (res.ok) {
+          activeProduct = await res.json();
+          alert('Saved to MongoDB successfully!');
+          navigateTo('store');
+        }
+      } catch (err) {
+        alert('Failed saving to Mongo: ' + err.message);
+      }
+    }
+
+    // Razorpay Checkout Trigger
+    async function triggerCheckout() {
+      if (cartQuantity <= 0) return;
+      if (!currentUser) {
+        openAuthModal('signin');
+        return;
+      }
+
+      const totalAmount = cartQuantity * activeProduct.price;
+
+      try {
+        // 1. Request Order ID from backend
+        const orderRes = await fetch(`${API_BASE}/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: totalAmount })
+        });
+        const orderData = await orderRes.json();
+
+        if (!orderData.id) throw new Error(orderData.error || "Unable to initiate payment");
+
+        // 2. Open Razorpay Gateway Popup
+        const options = {
+          key: RAZORPAY_KEY,
+          amount: orderData.amount,
+          currency: "INR",
+          name: "Busywud",
+          description: `${cartQuantity}x ${activeProduct.title}`,
+          image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360899/busywud_logo.avif",
+          order_id: orderData.id,
+          handler: async function (response) {
+            // 3. Save successful payment details to MongoDB
+            const verifyRes = await fetch(`${API_BASE}/verify-payment`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                amount: totalAmount,
+                customer: currentUser,
+                items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }]
+              })
+            });
+
+            if (verifyRes.ok) {
+              alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}. Order saved to database.`);
+              cartQuantity = 0;
+              localStorage.setItem('busywud_cart_qty', 0);
+              updateCartDisplay();
+              toggleCartDrawer(false);
+            }
+          },
+          prefill: {
+            name: currentUser.name || "Customer",
+            email: currentUser.email || ""
+          },
+          theme: {
+            color: "#FFC800"
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (err) {
+        alert("Payment Gateway Error: " + err.message);
+      }
+    }
+
+    // --- DARK / LIGHT MODE ---
+    function initTheme() {
+      const savedTheme = localStorage.getItem('busywud_theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        updateThemeIcon(true);
+      } else {
+        document.documentElement.classList.remove('dark');
+        updateThemeIcon(false);
+      }
+    }
+
+    function toggleDarkMode() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('busywud_theme', isDark ? 'dark' : 'light');
+      updateThemeIcon(isDark);
+    }
+
+    function updateThemeIcon(isDark) {
+      const icon = document.getElementById('themeIcon');
+      if (isDark) icon.className = 'fa-solid fa-sun text-base';
+      else icon.className = 'fa-solid fa-moon text-base';
+    }
+
+    // --- 10-SECOND BUBBLES ---
+    function launchTenSecondBubbles() {
+      const container = document.getElementById('bubbleCanvas');
+      if (!container) return;
+      for (let i = 0; i < 14; i++) {
+        const bubble = document.createElement('div');
+        const size = Math.floor(Math.random() * 50) + 40;
+        const left = Math.floor(Math.random() * 90) + 5;
+        const delay = (Math.random() * 3.5).toFixed(1);
+        bubble.className = 'passive-bubble pointer-events-none rounded-full absolute animate-rise';
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${left}%`;
+        bubble.style.animationDelay = `${delay}s`;
+        container.appendChild(bubble);
+      }
+      setTimeout(() => {
+        container.style.transition = 'opacity 1s ease-out';
+        container.style.opacity = '0';
+        setTimeout(() => container.remove(), 1000);
+      }, 10000);
+    }
+
+    // --- ROUTING ---
+    function handleRouting() {
+      const isPathAdmin = window.location.pathname.endsWith('/admin');
+      const isHashAdmin = window.location.hash === '#/admin';
+
+      if (isPathAdmin || isHashAdmin) {
+        document.getElementById('storeView').classList.add('hidden');
+        document.getElementById('adminView').classList.remove('hidden');
+        populateAdminFields();
+      } else {
+        document.getElementById('adminView').classList.add('hidden');
+        document.getElementById('storeView').classList.remove('hidden');
+        renderStoreProduct();
+      }
+    }
+
+    function navigateTo(view) {
+      if (view === 'admin') window.location.hash = '#/admin';
+      else {
+        window.location.hash = '';
+        if (window.location.pathname.endsWith('/admin')) {
+          window.history.pushState({}, '', '/');
+        }
+      }
+      handleRouting();
+    }
+
+    window.addEventListener('hashchange', handleRouting);
+    window.addEventListener('popstate', handleRouting);
+
+    function renderStoreProduct() {
+      document.getElementById('storeProductTitle').innerText = activeProduct.title;
+      document.getElementById('storeProductBadge').innerText = activeProduct.badge;
+      document.getElementById('storeProductPrice').innerText = `₹${Number(activeProduct.price).toLocaleString('en-IN')}`;
+      document.getElementById('storeProductOldPrice').innerText = `₹${Number(activeProduct.oldPrice).toLocaleString('en-IN')}`;
+      document.getElementById('storeProductDesc').innerText = activeProduct.description;
+      document.getElementById('storeProductImg').src = activeProduct.image;
+    }
+
+    function populateAdminFields() {
+      document.getElementById('adminTitle').value = activeProduct.title;
+      document.getElementById('adminBadge').value = activeProduct.badge;
+      document.getElementById('adminPrice').value = activeProduct.price;
+      document.getElementById('adminOldPrice').value = activeProduct.oldPrice;
+      document.getElementById('adminImg').value = activeProduct.image;
+      document.getElementById('adminDesc').value = activeProduct.description;
+    }
+
+    // --- AUTH MODAL ---
+    function openAuthModal(mode = 'signin') {
+      authMode = mode;
+      document.getElementById('authModal').classList.remove('hidden');
+      updateModalLayout();
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function toggleModalMode() {
+      authMode = (authMode === 'signin') ? 'signup' : 'signin';
+      updateModalLayout();
+    }
+
+    function updateModalLayout() {
+      const isSignup = authMode === 'signup';
+      document.getElementById('signupNameBox').classList.toggle('hidden', !isSignup);
+      document.getElementById('modalHeading').innerText = isSignup ? 'Create Account' : 'Sign In';
+      document.getElementById('modalSubheading').innerText = isSignup ? 'Join the Busywud family' : 'Unlock your cart and quick checkout';
+      document.getElementById('formSubmitBtn').innerText = isSignup ? 'Create Account' : 'Sign In';
+      document.getElementById('toggleText').innerText = isSignup ? 'Already have an account?' : "Don't have an account?";
+      document.getElementById('toggleBtn').innerText = isSignup ? 'Sign In' : 'Create Account';
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('formEmail').value;
+      const name = authMode === 'signup' ? document.getElementById('formName').value : email.split('@')[0];
+      loginUser({ name, email });
+    }
+
+    function handleGoogleLogin() {
+      loginUser({ name: 'Google Parent', email: 'parent@gmail.com' });
+    }
+
+    function loginUser(userData) {
+      currentUser = userData;
+      localStorage.setItem('busywud_active_user', JSON.stringify(currentUser));
+      closeAuthModal();
+      refreshAuthState();
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      localStorage.removeItem('busywud_active_user');
+      cartQuantity = 0;
+      localStorage.removeItem('busywud_cart_qty');
+      refreshAuthState();
+      toggleCartDrawer(false);
+    }
+
+    function refreshAuthState() {
+      const authSlot = document.getElementById('authSlot');
+      const cartBtn = document.getElementById('cartBtn');
+
+      if (currentUser) {
+        cartBtn.classList.remove('hidden');
+        authSlot.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold hidden sm:inline">Hi, ${currentUser.name}</span>
+            <button onclick="handleLogout()" class="border-2 border-brand-black dark:border-brand-yellow text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-brand-black hover:text-white dark:hover:bg-brand-yellow dark:hover:text-brand-black transition">
+              Logout
+            </button>
+          </div>
+        `;
+      } else {
+        cartBtn.classList.add('hidden');
+        authSlot.innerHTML = `
+          <button onclick="openAuthModal('signin')" class="bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black hover:bg-zinc-800 dark:hover:bg-brand-yellowHover font-semibold text-sm px-4 sm:px-5 py-2.5 rounded-2xl shadow transition-all flex items-center gap-2">
+            <i class="fa-regular fa-user"></i> <span>Sign In</span>
+          </button>
+        `;
+      }
+      updateCartDisplay();
+    }
+
+    // --- CART ACTIONS ---
+    function handleAddToCartClick() {
+      if (!currentUser) {
+        openAuthModal('signin');
+        return;
+      }
+      cartQuantity += 1;
+      localStorage.setItem('busywud_cart_qty', cartQuantity);
+      updateCartDisplay();
+      toggleCartDrawer(true);
+    }
+
+    function handleInstantBuy() {
+      if (!currentUser) {
+        openAuthModal('signin');
+        return;
+      }
+      cartQuantity = 1;
+      localStorage.setItem('busywud_cart_qty', cartQuantity);
+      updateCartDisplay();
+      triggerCheckout();
+    }
+
+    function toggleCartDrawer(show) {
+      document.getElementById('cartDrawer').classList.toggle('hidden', !show);
+    }
+
+    function updateCartDisplay() {
+      const badge = document.getElementById('cartCountBadge');
+      const container = document.getElementById('cartContents');
+      const totalDisplay = document.getElementById('cartDrawerTotal');
+
+      badge.innerText = cartQuantity;
+
+      if (cartQuantity <= 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-gray-400">
+            <i class="fa-solid fa-basket-shopping text-4xl mb-3"></i>
+            <p class="text-sm">Your shopping bag is empty.</p>
+          </div>
+        `;
+        totalDisplay.innerText = '₹0';
+        return;
+      }
+
+      const totalAmount = cartQuantity * activeProduct.price;
+      container.innerHTML = `
+        <div class="border-2 border-brand-yellow/40 p-4 rounded-2xl flex items-center gap-3 bg-white dark:bg-zinc-800">
+          <img src="${activeProduct.image}" class="w-16 h-16 object-cover rounded-xl border border-gray-200 dark:border-zinc-700">
+          <div class="flex-grow">
+            <h4 class="text-xs font-bold">${activeProduct.title}</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-1">₹${Number(activeProduct.price).toLocaleString('en-IN')}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <button onclick="adjustQty(-1)" class="w-6 h-6 rounded-md bg-gray-100 dark:bg-zinc-700 font-bold text-xs flex items-center justify-center">-</button>
+              <span class="text-xs font-bold">${cartQuantity}</span>
+              <button onclick="adjustQty(1)" class="w-6 h-6 rounded-md bg-gray-100 dark:bg-zinc-700 font-bold text-xs flex items-center justify-center">+</button>
+            </div>
+          </div>
+          <button onclick="adjustQty(-cartQuantity)" class="text-red-400 hover:text-red-600 p-2">
+            <i class="fa-solid fa-trash text-xs"></i>
+          </button>
+        </div>
+      `;
+      totalDisplay.innerText = `₹${totalAmount.toLocaleString('en-IN')}`;
+    }
+
+    function adjustQty(delta) {
+      cartQuantity = Math.max(0, cartQuantity + delta);
+      localStorage.setItem('busywud_cart_qty', cartQuantity);
+      updateCartDisplay();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      loadProductFromMongo();
+      handleRouting();
+      refreshAuthState();
+      launchTenSecondBubbles();
+    });
+  </script>
+</body>
+</html>
