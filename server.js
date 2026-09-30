@@ -4,30 +4,46 @@ const cors = require('cors');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const path = require('path');
+const session = require('express-session');
+const nodemailer = require('nodemailer');
+const cloudinary = require('cloudinary').v2;
 require('dotenv').config();
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_KEY_SECRET
+});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// Serve static assets from project root
 app.use(express.static(__dirname));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'busywud-admin-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
 
-// Serve index.html on root and admin path
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
+  if (!req.session.adminLoggedIn) {
+    return res.sendFile(path.join(__dirname, 'admin.html'));
+  }
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Database Schemas
 const ProductSchema = new mongoose.Schema({
   title: String,
+  category: { type: String, default: 'busy-board' },
   badge: String,
   price: Number,
   oldPrice: Number,
+  stock: { type: Number, default: 0 },
   image: String,
   description: String
 }, { timestamps: true });
@@ -54,16 +70,64 @@ const OrderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+const ContactSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  phone: String,
+  message: String
+}, { timestamps: true });
+
 const Product = mongoose.model('Product', ProductSchema);
 const Order = mongoose.model('Order', OrderSchema);
+const Contact = mongoose.model('Contact', ContactSchema);
 
-// Razorpay Instance
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-// Helper: Create Shipment in ParcelGuru
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@busywud.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@3360';
+
+let transporter = null;
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  const smtpHost = process.env.SMTP_HOST || 'smtp.zoho.com';
+  const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+  transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+}
+
+async function sendOrderConfirmationEmail(order) {
+  if (!transporter) return;
+  try {
+    await transporter.sendMail({
+      from: '"Busywud Store" <' + (process.env.EMAIL_USER || 'orders@busywud.com') + '>',
+      to: order.customer?.email || 'customer@busywud.com',
+      subject: 'Order Confirmation - Busywud',
+      html: `
+        <h2>Thank you for your order!</h2>
+        <p>Hi ${order.customer?.name || 'Customer'},</p>
+        <p>Your order has been placed successfully.</p>
+        <p><strong>Order ID:</strong> ${order.orderId}</p>
+        <p><strong>Amount:</strong> ₹${order.amount}</p>
+        <p><strong>Status:</strong> ${order.status}</p>
+        ${order.shipment?.waybill ? `<p><strong>Tracking:</strong> <a href="${order.shipment.trackingUrl || '#'}">${order.shipment.waybill}</a></p>` : ''}
+        <p>We'll notify you once it ships.</p>
+        <p>Thanks,<br>Busywud Team</p>
+      `
+    });
+  } catch (err) {
+    console.error('Email send error:', err.message);
+  }
+}
+
 async function createParcelGuruShipment(orderData) {
   try {
     const payload = {
@@ -72,11 +136,11 @@ async function createParcelGuruShipment(orderData) {
       consignee_name: orderData.customer?.name || "Valued Parent",
       consignee_phone: orderData.customer?.phone || "9999999999",
       consignee_email: orderData.customer?.email || "customer@busywud.com",
-      consignee_address: orderData.customer?.address || "Customer Address Provided via Checkout",
+      consignee_address: orderData.customer?.address || "Customer Provided Address",
       consignee_pincode: orderData.customer?.pincode || "411001",
       payment_type: "Prepaid",
       declared_value: orderData.amount,
-      weight_kg: 0.8, // Average weight of wooden busy board
+      weight_kg: 0.8,
       product_description: "Busywud GlowLogic Wooden Board"
     };
 
@@ -90,8 +154,6 @@ async function createParcelGuruShipment(orderData) {
     });
 
     const result = await response.json();
-    console.log("ParcelGuru Shipment Response:", result);
-
     return {
       waybill: result.waybill || result.awb_code || `PG-${Date.now()}`,
       shipmentId: result.shipment_id || result.id || "",
@@ -99,7 +161,7 @@ async function createParcelGuruShipment(orderData) {
       trackingUrl: result.tracking_url || `https://parcelguru.com/track/${result.waybill || ""}`
     };
   } catch (error) {
-    console.error("ParcelGuru Integration Error:", error.message);
+    console.error("ParcelGuru Error:", error.message);
     return {
       waybill: `PG-OFFLINE-${Date.now()}`,
       shipmentId: "",
@@ -108,29 +170,27 @@ async function createParcelGuruShipment(orderData) {
   }
 }
 
-// Seed default product if empty
 async function seedDefaultProduct() {
   try {
     const count = await Product.countDocuments();
     if (count === 0) {
       await Product.create({
         title: "GlowLogic Busy Board",
+        category: "busy-board",
         badge: "Ages 1 to 4 Years",
         price: 1499,
         oldPrice: 2499,
+        stock: 50,
         image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp",
         description: "Crafted from 100% natural, non-toxic wood with smooth rounded edges."
       });
-      console.log('Seeded GlowLogic Product to MongoDB');
+      console.log('Seeded GlowLogic Product into Database');
     }
   } catch (err) {
     console.error('Seeding error:', err.message);
   }
 }
 
-// ------------------- API ROUTES -------------------
-
-// GET Product
 app.get('/api/product', async (req, res) => {
   try {
     const product = await Product.findOne();
@@ -140,7 +200,16 @@ app.get('/api/product', async (req, res) => {
   }
 });
 
-// UPDATE Product
+app.get('/api/video', (req, res) => {
+  const videoPublicId = process.env.CLOUDINARY_VIDEO_PUBLIC_ID || 'generate_a_video';
+  const videoUrl = cloudinary.url(videoPublicId, {
+    resource_type: 'video',
+    fetch_format: 'auto',
+    quality: 'auto'
+  });
+  res.json({ url: videoUrl, publicId: videoPublicId });
+});
+
 app.put('/api/product', async (req, res) => {
   try {
     const updated = await Product.findOneAndUpdate({}, req.body, { new: true, upsert: true });
@@ -150,11 +219,65 @@ app.put('/api/product', async (req, res) => {
   }
 });
 
-// RAZORPAY: Create Order
+app.post('/api/admin/login', (req, res) => {
+  const { email, password } = req.body;
+  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    req.session.adminLoggedIn = true;
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid credentials' });
+  }
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/admin/check', (req, res) => {
+  res.json({ loggedIn: !!req.session.adminLoggedIn });
+});
+
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 });
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/products', async (req, res) => {
+  try {
+    const product = await Product.create(req.body);
+    res.status(201).json(product);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/create-order', async (req, res) => {
   try {
     const { amount, customer, items, currency = "INR" } = req.body;
-
     const options = {
       amount: Math.round(amount * 100),
       currency,
@@ -162,24 +285,21 @@ app.post('/api/create-order', async (req, res) => {
     };
 
     const order = await razorpay.orders.create(options);
-
     const pendingOrder = await Order.create({
       orderId: order.id,
       amount: amount,
       currency: currency,
       status: "CREATED",
-      customer: customer || { name: "Guest Customer", email: "guest@busywud.com" },
+      customer: customer || { name: "Guest Parent", email: "parent@busywud.com" },
       items: items || []
     });
 
     res.json({ ...order, dbOrderId: pendingOrder._id });
   } catch (error) {
-    console.error('Razorpay order error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// RAZORPAY: Verify Payment & Auto-book ParcelGuru Shipment
 app.post('/api/verify-payment', async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
@@ -195,13 +315,9 @@ app.post('/api/verify-payment', async (req, res) => {
       }
     }
 
-    // Retrieve order to feed details to ParcelGuru
     const existingOrder = await Order.findOne({ orderId: razorpay_order_id });
-
-    // Generate courier manifest via ParcelGuru
     const shipmentDetails = await createParcelGuruShipment(existingOrder);
 
-    // Update order with payment and shipment info
     const updatedOrder = await Order.findOneAndUpdate(
       { orderId: razorpay_order_id },
       {
@@ -212,14 +328,14 @@ app.post('/api/verify-payment', async (req, res) => {
       { new: true }
     );
 
+    await sendOrderConfirmationEmail(updatedOrder);
+
     res.json({ success: true, order: updatedOrder });
   } catch (err) {
-    console.error('Verification/Shipment error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET Orders (Shows payment + ParcelGuru tracking info)
 app.get('/api/orders', async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -229,7 +345,23 @@ app.get('/api/orders', async (req, res) => {
   }
 });
 
-// ------------------- SERVER BOOTSTRAP -------------------
+app.post('/api/contact', async (req, res) => {
+  try {
+    const contact = await Contact.create(req.body);
+    res.status(201).json({ success: true, contact });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/contacts', async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+    res.json(contacts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 8080;
 
@@ -245,6 +377,7 @@ async function startServer() {
 
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Admin panel: http://localhost:${PORT}/admin`);
     });
   } catch (err) {
     console.error('CRITICAL: MongoDB Connection Failed');
@@ -253,4 +386,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
