@@ -16,8 +16,8 @@ cloudinary.config({
 });
 
 const supabase = createClient(
-  process.env.SUPABASE_URL || `https://eoyxykhbzyybjxjyfrts.supabase.co`,
-  process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVveXh5a2hienltYmp4anlmcnRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ4MjU1NzksImV4cCI6MjA0MDQwMTU3OX0.0zuZNaRfJJmh7q7U6Dxkl1GVDcEQHa_2z6qz1Z5KGvE'
+  process.env.SUPABASE_URL || 'https://eoyxykhbzyybjxjyfrts.supabase.co',
+  process.env.SUPABASE_ANON_KEY || 'sb_publishable_Ro25YZ2xWpUsm7t33mfRAA_0uWOS0Rm'
 );
 
 const app = express();
