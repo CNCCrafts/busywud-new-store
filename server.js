@@ -242,13 +242,27 @@ app.put('/api/orders/:id', async (req, res) => {
   }
 });
 
+const os = require('os');
+
 app.get('/api/health', async (req, res) => {
   try {
+    const interfaces = os.networkInterfaces();
+    const ips = [];
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          ips.push(iface.address);
+        }
+      }
+    }
+    
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     res.json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      database: dbStatus
+      serverIps: ips,
+      database: dbStatus,
+      mongoUri: process.env.MONGO_URI ? 'configured' : 'missing'
     });
   } catch (err) {
     res.status(500).json({ status: 'error', error: err.message });
@@ -379,6 +393,8 @@ app.post('/api/create-order', async (req, res) => {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
+    console.log(`Creating order for amount: ${amount}, customer: ${customer?.email || 'guest'}`);
+
     const options = {
       amount: Math.round(amount * 100),
       currency,
@@ -392,6 +408,8 @@ app.post('/api/create-order', async (req, res) => {
     while (retries > 0) {
       try {
         order = await razorpay.orders.create(options);
+        console.log('Razorpay order created:', order.id);
+        
         pendingOrder = await Order.create({
           orderId: order.id,
           amount: amount,
@@ -400,11 +418,12 @@ app.post('/api/create-order', async (req, res) => {
           customer: customer || { name: "Guest Parent", email: "parent@busywud.com" },
           items: items || []
         });
+        console.log('Order saved to MongoDB:', pendingOrder._id);
         break;
       } catch (err) {
         retries--;
+        console.error(`Order creation attempt failed (${retries} retries left):`, err.message);
         if (retries === 0) throw err;
-        console.warn(`Retrying order creation... (${retries} retries left):`, err.message);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
