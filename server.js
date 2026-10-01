@@ -258,9 +258,38 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/product', async (req, res) => {
   try {
     const product = await Product.findOne();
-    res.json(product);
+    if (product) {
+      return res.json(product);
+    }
+    
+    const defaultProduct = {
+      title: "GlowLogic Busy Board",
+      category: "busy-board",
+      badge: "Ages 1 to 4 Years",
+      price: 1499,
+      oldPrice: 2499,
+      stock: 50,
+      image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp",
+      description: "Crafted from 100% natural, non-toxic wood with smooth rounded edges."
+    };
+    
+    await Product.create(defaultProduct);
+    res.json(defaultProduct);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Product fetch error:', err);
+    res.status(500).json({ 
+      error: 'Database temporarily unavailable. Please try again later.',
+      fallback: {
+        title: "GlowLogic Busy Board",
+        category: "busy-board",
+        badge: "Ages 1 to 4 Years",
+        price: 1499,
+        oldPrice: 2499,
+        stock: 50,
+        image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp",
+        description: "Crafted from 100% natural, non-toxic wood with smooth rounded edges."
+      }
+    });
   }
 });
 
@@ -345,26 +374,45 @@ app.delete('/api/products/:id', async (req, res) => {
 app.post('/api/create-order', async (req, res) => {
   try {
     const { amount, customer, items, currency = "INR" } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
     const options = {
       amount: Math.round(amount * 100),
       currency,
       receipt: `rcpt_${Date.now()}`
     };
 
-    const order = await razorpay.orders.create(options);
-    const pendingOrder = await Order.create({
-      orderId: order.id,
-      amount: amount,
-      currency: currency,
-      status: "CREATED",
-      customer: customer || { name: "Guest Parent", email: "parent@busywud.com" },
-      items: items || []
-    });
+    let order;
+    let pendingOrder;
+    let retries = 3;
+    
+    while (retries > 0) {
+      try {
+        order = await razorpay.orders.create(options);
+        pendingOrder = await Order.create({
+          orderId: order.id,
+          amount: amount,
+          currency: currency,
+          status: "CREATED",
+          customer: customer || { name: "Guest Parent", email: "parent@busywud.com" },
+          items: items || []
+        });
+        break;
+      } catch (err) {
+        retries--;
+        if (retries === 0) throw err;
+        console.warn(`Retrying order creation... (${retries} retries left):`, err.message);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
 
     res.json({ ...order, dbOrderId: pendingOrder._id });
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create order' });
+    res.status(500).json({ error: error.message || 'Failed to create order. Please try again.' });
   }
 });
 
@@ -438,7 +486,11 @@ async function startServer() {
   try {
     console.log("Connecting to MongoDB Atlas...");
     await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 60000,
+      connectTimeoutMS: 30000,
+      maxPoolSize: 10,
+      minPoolSize: 1
     });
     console.log('MongoDB Connected to Cluster1');
 
