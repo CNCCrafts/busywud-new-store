@@ -86,7 +86,7 @@
       
       <!-- Brand Logo -->
       <a href="#" onclick="navigateTo('store')" class="flex items-center gap-2 group">
-        <img src="busywud logo.avif" alt="Busywud Logo" class="h-12 sm:h-14 object-contain group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/180x60/FFC800/111111?text=BusyWud';">
+        <img src="https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360899/busywud_logo.avif" alt="Busywud Logo" class="h-12 sm:h-14 object-contain group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/180x60/FFC800/111111?text=BusyWud';">
       </a>
 
       <!-- Navigation Links -->
@@ -280,7 +280,7 @@
             <div class="absolute -top-3.5 -left-3 bg-brand-yellow text-brand-black font-display font-bold text-xs uppercase py-1.5 px-4 rounded-full shadow border border-black/10">
               <i class="fa-solid fa-bolt"></i> Complete Set
             </div>
-            <img id="storeProductImg" src="glowlogic busy board.webp" alt="GlowLogic Busy Board" class="w-full h-auto rounded-2xl object-cover hover:scale-[1.02] transition-transform duration-300" onerror="this.src='https://placehold.co/600x600/FFC800/111111?text=GlowLogic+Board';">
+            <img id="storeProductImg" src="https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp" alt="GlowLogic Busy Board" class="w-full h-auto rounded-2xl object-cover hover:scale-[1.02] transition-transform duration-300" onerror="this.src='https://placehold.co/600x600/FFC800/111111?text=GlowLogic+Board';">
           </div>
         </div>
 
@@ -950,6 +950,16 @@
       const totalAmount = cartQuantity * activeProduct.price;
 
       try {
+        const healthRes = await fetch(`${API_BASE}/health`);
+        if (!healthRes.ok) {
+          throw new Error('Server is not responding. Please try again later.');
+        }
+      } catch (healthErr) {
+        alert('Cannot reach server. Please check:\n1. Server is running\n2. Internet connection\n3. Site URL is correct');
+        return;
+      }
+
+      try {
         const orderRes = await fetch(`${API_BASE}/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1021,7 +1031,7 @@
         rzp.open();
       } catch (err) {
         console.error('Payment error:', err);
-        alert("Payment Gateway Error: " + err.message + "\n\nPlease check:\n1. Server is running\n2. Internet connection\n3. Razorpay keys are configured");
+        alert("Payment Gateway Error: " + (err.message || 'Unknown error') + "\n\nPlease check:\n1. Server is running\n2. Internet connection\n3. Razorpay keys are configured");
       }
     }
 

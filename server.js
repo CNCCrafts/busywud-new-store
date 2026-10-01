@@ -242,8 +242,17 @@ app.put('/api/orders/:id', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (req, res) => {
+  try {
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      database: dbStatus
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
 });
 
 app.get('/api/product', async (req, res) => {
@@ -354,7 +363,8 @@ app.post('/api/create-order', async (req, res) => {
 
     res.json({ ...order, dbOrderId: pendingOrder._id });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Create order error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create order' });
   }
 });
 
@@ -390,7 +400,8 @@ app.post('/api/verify-payment', async (req, res) => {
 
     res.json({ success: true, order: updatedOrder });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Verify payment error:', err);
+    res.status(500).json({ error: err.message || 'Payment verification failed' });
   }
 });
 
