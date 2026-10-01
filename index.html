@@ -624,7 +624,7 @@
 
   <!-- ==================== LOGIC ==================== -->
   <script>
-    const API_BASE = `${window.location.protocol}//${window.location.hostname}:${window.location.port || '8080'}/api`;
+    const API_BASE = "/api";
     const RAZORPAY_KEY = "rzp_live_TafLQCc6Jt5AsG";
 
     let activeProduct = {
@@ -976,13 +976,13 @@
           image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360899/busywud_logo.avif",
           order_id: orderData.id,
           handler: async function (response) {
-            // 3. Save successful payment details to MongoDB
             const verifyRes = await fetch(`${API_BASE}/verify-payment`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
                 amount: totalAmount,
                 customer: currentUser,
                 items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }]
@@ -1145,7 +1145,7 @@
 
     function handleGoogleLogin() {
       const googleClientId = '201650644316-uefqikcj950hebh971l3r48sgke9vj4a.apps.googleusercontent.com';
-      const redirectUri = `${window.location.origin}/`;
+      const redirectUri = window.location.origin + '/';
       const scope = 'profile email';
       const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
       window.location.href = url;

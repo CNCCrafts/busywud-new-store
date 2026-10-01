@@ -252,13 +252,16 @@ app.get('/api/product', async (req, res) => {
 });
 
 app.get('/api/video', (req, res) => {
-  const videoPublicId = process.env.CLOUDINARY_VIDEO_PUBLIC_ID || 'generate_a_video';
-  const videoUrl = cloudinary.url(videoPublicId, {
-    resource_type: 'video',
-    fetch_format: 'auto',
-    quality: 'auto'
-  });
-  res.json({ url: videoUrl, publicId: videoPublicId });
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const publicId = process.env.CLOUDINARY_VIDEO_PUBLIC_ID || 'generate_a_video';
+  
+  if (!cloudName) {
+    return res.status(500).json({ error: 'Cloudinary not configured' });
+  }
+  
+  const videoUrl = `https://res.cloudinary.com/${cloudName}/video/upload/v1788360996/${publicId}.mp4`;
+  
+  res.json({ url: videoUrl, publicId: publicId });
 });
 
 app.put('/api/product', async (req, res) => {
