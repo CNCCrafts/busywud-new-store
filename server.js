@@ -244,6 +244,23 @@ app.put('/api/orders/:id', async (req, res) => {
 
 const os = require('os');
 
+app.get('/api/debug/checkout-test', async (req, res) => {
+  try {
+    const testOrder = await Order.create({
+      orderId: 'test_' + Date.now(),
+      amount: 100,
+      status: "TEST",
+      customer: { name: "Test User", email: "test@example.com" },
+      items: []
+    });
+    await Order.findByIdAndDelete(testOrder._id);
+    res.json({ success: true, message: 'Checkout simulation passed', orderId: testOrder._id });
+  } catch (err) {
+    console.error('Checkout test error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/health', async (req, res) => {
   try {
     const interfaces = os.networkInterfaces();
@@ -256,13 +273,39 @@ app.get('/api/health', async (req, res) => {
       }
     }
     
+    let dbWriteTest = 'not_tested';
+    let dbReadTest = 'not_tested';
+    try {
+      const testResult = await Product.findOne().limit(1).maxTimeMS(5000);
+      dbReadTest = testResult ? 'read_ok' : 'read_ok_empty';
+    } catch (err) {
+      dbReadTest = 'read_failed: ' + err.message;
+    }
+    
+    try {
+      const testOrder = await Order.create({
+        orderId: 'test_' + Date.now(),
+        amount: 1,
+        status: "TEST",
+        customer: { name: "Test", email: "test@test.com" },
+        items: []
+      });
+      dbWriteTest = 'write_ok';
+      await Order.findByIdAndDelete(testOrder._id);
+    } catch (err) {
+      dbWriteTest = 'write_failed: ' + err.message;
+    }
+    
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     res.json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
       serverIps: ips,
       database: dbStatus,
-      mongoUri: process.env.MONGO_URI ? 'configured' : 'missing'
+      databaseRead: dbReadTest,
+      databaseWrite: dbWriteTest,
+      mongoUri: process.env.MONGO_URI ? 'configured' : 'missing',
+      razorpayKey: process.env.RAZORPAY_KEY_ID ? 'configured' : 'missing'
     });
   } catch (err) {
     res.status(500).json({ status: 'error', error: err.message });
