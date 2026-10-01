@@ -96,7 +96,7 @@
         <a href="#contactSection" class="hover:text-brand-yellow transition-colors">Contact</a>
       </nav>
 
-      <!-- Action Cluster: Theme Toggle + Cart + Sign In -->
+      <!-- Action Cluster: Theme Toggle + Cart + My Account + Sign In -->
       <div class="flex items-center gap-3 sm:gap-4">
         
         <!-- Dark / Light Mode Toggle -->
@@ -108,6 +108,11 @@
         <button id="cartBtn" onclick="toggleCartDrawer(true)" class="hidden relative p-2.5 rounded-2xl bg-brand-yellowLight dark:bg-zinc-800 text-brand-black dark:text-brand-yellow hover:bg-brand-yellow hover:text-brand-black transition-all">
           <i class="fa-solid fa-basket-shopping text-base"></i>
           <span id="cartCountBadge" class="absolute -top-1 -right-1 bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white dark:border-brand-black">0</span>
+        </button>
+
+        <!-- My Account Button (Shown after login) -->
+        <button id="myAccountBtn" onclick="toggleMyAccount(true)" class="hidden relative p-2.5 rounded-2xl bg-brand-yellowLight dark:bg-zinc-800 text-brand-black dark:text-brand-yellow hover:bg-brand-yellow hover:text-brand-black transition-all" title="My Account">
+          <i class="fa-solid fa-user text-base"></i>
         </button>
 
         <!-- Sign In Dynamic Container -->
@@ -142,9 +147,16 @@
 
         <!-- Video Frame -->
         <div class="max-w-4xl mx-auto bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-brand-yellow relative">
-          <video id="glowlogicVideo" autoplay loop muted playsinline controls preload="auto" class="w-full aspect-video object-cover">
+          <video id="glowlogicVideo" autoplay loop muted playsinline controls preload="auto" poster="https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp" class="w-full aspect-video object-cover">
             <source id="cloudinaryVideoSource" src="" type="video/mp4">
           </video>
+          <div id="videoError" class="hidden absolute inset-0 bg-black/90 flex items-center justify-center">
+            <div class="text-center text-white p-6">
+              <i class="fa-solid fa-circle-exclamation text-4xl mb-3 text-brand-yellow"></i>
+              <p class="text-sm font-semibold">Video unavailable</p>
+              <p class="text-xs text-gray-400 mt-1">Please check back later</p>
+            </div>
+          </div>
           <div class="absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-2 pointer-events-none">
             <span class="w-2.5 h-2.5 rounded-full bg-brand-yellow animate-ping"></span> Live Action
           </div>
@@ -463,6 +475,14 @@
         </div>
       </form>
     </div>
+
+    <div id="orderManagementPanel" class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/50 rounded-3xl p-6 sm:p-8 shadow-md">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-extrabold">Orders & Shipments</h2>
+        <button onclick="loadAdminOrders()" class="text-xs font-bold px-3 py-2 rounded-lg bg-brand-yellow text-brand-black hover:bg-brand-yellowHover transition">Refresh</button>
+      </div>
+      <div id="adminOrdersList" class="space-y-3"></div>
+    </div>
   </main>
 
   <!-- ==================== AUTH MODAL ==================== -->
@@ -546,6 +566,54 @@
     </div>
   </div>
 
+  <!-- ==================== MY ACCOUNT DRAWER ==================== -->
+  <div id="myAccountDrawer" class="fixed inset-0 z-50 bg-black/60 hidden flex justify-end">
+    <div class="bg-white dark:bg-brand-cardDark w-full max-w-sm h-full p-6 flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-zinc-800">
+        <h3 class="text-lg font-display font-bold">My Account</h3>
+        <button onclick="toggleMyAccount(false)" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 hover:text-black dark:hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex-grow overflow-y-auto py-6 space-y-6">
+        <div>
+          <h4 class="text-sm font-bold mb-3">Profile</h4>
+          <form id="accountForm" onsubmit="updateAccount(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Name</label>
+              <input type="text" id="accountName" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input type="email" id="accountEmail" readonly class="w-full border border-gray-200 dark:border-zinc-700 dark:bg-zinc-900 rounded-xl px-3 py-2 text-sm text-gray-500">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+              <input type="tel" id="accountPhone" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Address</label>
+              <textarea id="accountAddress" rows="3" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow"></textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Pincode</label>
+              <input type="text" id="accountPincode" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <button type="submit" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-2.5 rounded-xl text-sm transition shadow">Save Changes</button>
+          </form>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold mb-3">My Orders</h4>
+          <div id="myOrdersList" class="space-y-3">
+            <p class="text-xs text-gray-500">Loading orders...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="bg-brand-black text-white mt-auto py-8 border-t border-zinc-800">
     <div class="max-w-7xl mx-auto px-4 text-center">
@@ -556,7 +624,7 @@
 
   <!-- ==================== LOGIC ==================== -->
   <script>
-    const API_BASE = "http://localhost:8080/api";
+    const API_BASE = `${window.location.protocol}//${window.location.hostname}:${window.location.port || '8080'}/api`;
     const RAZORPAY_KEY = "rzp_live_TafLQCc6Jt5AsG";
 
     let activeProduct = {
@@ -593,13 +661,22 @@
           const data = await res.json();
           const source = document.getElementById('cloudinaryVideoSource');
           const video = document.getElementById('glowlogicVideo');
+          const errorDiv = document.getElementById('videoError');
           if (source && data.url && video) {
             source.src = data.url;
             video.load();
+            video.onerror = () => {
+              if (errorDiv) errorDiv.classList.remove('hidden');
+            };
+            video.onloadeddata = () => {
+              if (errorDiv) errorDiv.classList.add('hidden');
+            };
           }
         }
       } catch (err) {
         console.warn("Could not load video from Cloudinary:", err);
+        const errorDiv = document.getElementById('videoError');
+        if (errorDiv) errorDiv.classList.remove('hidden');
       }
     }
 
@@ -780,6 +857,88 @@
       }
     }
 
+    async function loadAdminOrders() {
+      try {
+        const res = await fetch(`${API_BASE}/orders`);
+        if (res.ok) {
+          const orders = await res.json();
+          renderAdminOrders(orders);
+        }
+      } catch (err) {
+        console.error('Failed to load orders:', err);
+      }
+    }
+
+    function renderAdminOrders(orders) {
+      const container = document.getElementById('adminOrdersList');
+      if (!orders.length) {
+        container.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">No orders found.</p>';
+        return;
+      }
+      container.innerHTML = orders.map(o => `
+        <div class="border border-gray-200 dark:border-zinc-700 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <p class="text-sm font-bold">${o.orderId}</p>
+              <p class="text-xs text-gray-500">${o.customer?.name || 'Guest'} • ${o.customer?.email || ''}</p>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-brand-yellow text-brand-black">${o.status}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold">₹${Number(o.amount).toLocaleString('en-IN')}</p>
+              ${o.shipment?.waybill ? `<p class="text-[10px] text-gray-400">AWB: ${o.shipment.waybill} • ${o.shipment.status || 'PENDING'}</p>` : '<p class="text-[10px] text-gray-400">No shipment</p>'}
+            </div>
+            <div class="flex items-center gap-2">
+              <select onchange="updateOrderStatus('${o._id}', this.value)" class="text-xs border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-lg px-2 py-1">
+                <option value="">Status</option>
+                <option value="CREATED">Created</option>
+                <option value="PAID">Paid</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="PROCESSING">Processing</option>
+                <option value="SHIPPED">Shipped</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+              <button onclick="triggerParcelGuru('${o._id}')" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-brand-black text-white hover:bg-zinc-800 transition">ParcelGuru</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function updateOrderStatus(orderId, status) {
+      if (!status) return;
+      try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+          loadAdminOrders();
+        }
+      } catch (err) {
+        alert('Failed updating order: ' + err.message);
+      }
+    }
+
+    async function triggerParcelGuru(orderId) {
+      try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ triggerShipment: true })
+        });
+        if (res.ok) {
+          alert('ParcelGuru shipment triggered!');
+          loadAdminOrders();
+        }
+      } catch (err) {
+        alert('Failed triggering ParcelGuru: ' + err.message);
+      }
+    }
+
     // Razorpay Checkout Trigger
     async function triggerCheckout() {
       if (cartQuantity <= 0) return;
@@ -797,6 +956,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: totalAmount })
         });
+        
+        if (!orderRes.ok) {
+          const errorData = await orderRes.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server error: ${orderRes.status}`);
+        }
+        
         const orderData = await orderRes.json();
 
         if (!orderData.id) throw new Error(orderData.error || "Unable to initiate payment");
@@ -830,6 +995,9 @@
               localStorage.setItem('busywud_cart_qty', 0);
               updateCartDisplay();
               toggleCartDrawer(false);
+            } else {
+              const errData = await verifyRes.json().catch(() => ({}));
+              alert('Payment verification failed: ' + (errData.error || 'Unknown error'));
             }
           },
           prefill: {
@@ -844,6 +1012,7 @@
         const rzp = new Razorpay(options);
         rzp.open();
       } catch (err) {
+        console.error('Payment error:', err);
         alert("Payment Gateway Error: " + err.message);
       }
     }
@@ -906,6 +1075,7 @@
             document.getElementById('storeView').classList.add('hidden');
             document.getElementById('adminView').classList.remove('hidden');
             loadAdminProducts();
+            loadAdminOrders();
           } else {
             window.location.href = '/admin';
           }
@@ -974,7 +1144,32 @@
     }
 
     function handleGoogleLogin() {
-      loginUser({ name: 'Google Parent', email: 'parent@gmail.com' });
+      const googleClientId = '201650644316-uefqikcj950hebh971l3r48sgke9vj4a.apps.googleusercontent.com';
+      const redirectUri = `${window.location.origin}/`;
+      const scope = 'profile email';
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+      window.location.href = url;
+    }
+
+    function handleOAuthCallback() {
+      const hash = window.location.hash;
+      if (hash.includes('access_token')) {
+        const token = new URLSearchParams(hash.substring(1)).get('access_token');
+        if (token) {
+          fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.email) {
+              loginUser({ name: data.name || 'Google User', email: data.email });
+            }
+          })
+          .catch(() => {
+            loginUser({ name: 'Google Parent', email: 'parent@gmail.com' });
+          });
+        }
+      }
     }
 
     function loginUser(userData) {
@@ -991,14 +1186,89 @@
       localStorage.removeItem('busywud_cart_qty');
       refreshAuthState();
       toggleCartDrawer(false);
+      toggleMyAccount(false);
+    }
+
+    function toggleMyAccount(show) {
+      const drawer = document.getElementById('myAccountDrawer');
+      drawer.classList.toggle('hidden', !show);
+      if (show) {
+        loadMyAccount();
+      }
+    }
+
+    async function loadMyAccount() {
+      if (!currentUser) return;
+      document.getElementById('accountName').value = currentUser.name || '';
+      document.getElementById('accountEmail').value = currentUser.email || '';
+      document.getElementById('accountPhone').value = currentUser.phone || '';
+      document.getElementById('accountAddress').value = currentUser.address || '';
+      document.getElementById('accountPincode').value = currentUser.pincode || '';
+
+      try {
+        const res = await fetch(`${API_BASE}/my-orders?email=${encodeURIComponent(currentUser.email)}`);
+        if (res.ok) {
+          const orders = await res.json();
+          renderMyOrders(orders);
+        }
+      } catch (err) {
+        console.error('Failed to load orders:', err);
+      }
+    }
+
+    function renderMyOrders(orders) {
+      const container = document.getElementById('myOrdersList');
+      if (!orders.length) {
+        container.innerHTML = '<p class="text-xs text-gray-500">No orders yet.</p>';
+        return;
+      }
+      container.innerHTML = orders.map(o => `
+        <div class="border border-gray-200 dark:border-zinc-700 rounded-xl p-3">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs font-bold">${o.orderId}</p>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-yellow text-brand-black">${o.status}</span>
+          </div>
+          <p class="text-xs text-gray-500">₹${Number(o.amount).toLocaleString('en-IN')} • ${o.items?.length || 0} items</p>
+          ${o.shipment?.waybill ? `<p class="text-[10px] text-gray-400 mt-1">Tracking: ${o.shipment.waybill}</p>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function updateAccount(e) {
+      e.preventDefault();
+      const updated = {
+        email: currentUser.email,
+        name: document.getElementById('accountName').value,
+        phone: document.getElementById('accountPhone').value,
+        address: document.getElementById('accountAddress').value,
+        pincode: document.getElementById('accountPincode').value
+      };
+      try {
+        const res = await fetch(`${API_BASE}/my-account`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          currentUser = { ...currentUser, ...data.customer };
+          localStorage.setItem('busywud_active_user', JSON.stringify(currentUser));
+          alert('Account updated successfully!');
+          refreshAuthState();
+        }
+      } catch (err) {
+        alert('Failed updating account: ' + err.message);
+      }
     }
 
     function refreshAuthState() {
       const authSlot = document.getElementById('authSlot');
       const cartBtn = document.getElementById('cartBtn');
+      const myAccountBtn = document.getElementById('myAccountBtn');
 
       if (currentUser) {
         cartBtn.classList.remove('hidden');
+        myAccountBtn.classList.remove('hidden');
         authSlot.innerHTML = `
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold hidden sm:inline">Hi, ${currentUser.name}</span>
@@ -1009,6 +1279,7 @@
         `;
       } else {
         cartBtn.classList.add('hidden');
+        myAccountBtn.classList.add('hidden');
         authSlot.innerHTML = `
           <button onclick="openAuthModal('signin')" class="bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black hover:bg-zinc-800 dark:hover:bg-brand-yellowHover font-semibold text-sm px-4 sm:px-5 py-2.5 rounded-2xl shadow transition-all flex items-center gap-2">
             <i class="fa-regular fa-user"></i> <span>Sign In</span>
@@ -1097,6 +1368,7 @@
       handleRouting();
       refreshAuthState();
       launchTenSecondBubbles();
+      handleOAuthCallback();
     });
   </script>
 </body>

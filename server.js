@@ -16,7 +16,7 @@ cloudinary.config({
 });
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 app.use(express.static(__dirname));
 app.use(session({
@@ -190,6 +190,57 @@ async function seedDefaultProduct() {
     console.error('Seeding error:', err.message);
   }
 }
+
+// Customer order history by email
+app.get('/api/my-orders', async (req, res) => {
+  try {
+    const email = req.query.email;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    const orders = await Order.find({ 'customer.email': email }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Customer profile update
+app.put('/api/my-account', async (req, res) => {
+  try {
+    const { email, name, phone, address, pincode } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    const updated = await Order.findOneAndUpdate(
+      { 'customer.email': email },
+      { $set: { 'customer.name': name, 'customer.phone': phone, 'customer.address': address, 'customer.pincode': pincode } },
+      { new: true }
+    );
+    res.json({ success: true, customer: updated?.customer || {} });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: update order status / shipment status
+app.put('/api/orders/:id', async (req, res) => {
+  try {
+    const { status, triggerShipment } = req.body;
+    const updateData = {};
+    if (status) updateData.status = status;
+    
+    if (triggerShipment) {
+      const order = await Order.findById(req.params.id);
+      if (order) {
+        const shipmentDetails = await createParcelGuruShipment(order);
+        updateData.shipment = shipmentDetails;
+        if (status) updateData.status = status;
+      }
+    }
+    
+    const updated = await Order.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('/api/product', async (req, res) => {
   try {
