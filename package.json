@@ -11,13 +11,12 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "cloudinary": "^2.6.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-session": "^1.17.5",
-    "mongodb": "^7.6.0",
-    "mongoose": "^9.9.5",
     "nodemailer": "^6.9.16",
     "razorpay": "^2.9.8"
   }
