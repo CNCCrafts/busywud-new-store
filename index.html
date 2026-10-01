@@ -950,23 +950,27 @@
       const totalAmount = cartQuantity * activeProduct.price;
 
       try {
-        // 1. Request Order ID from backend
         const orderRes = await fetch(`${API_BASE}/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: totalAmount })
         });
         
-        if (!orderRes.ok) {
-          const errorData = await orderRes.json().catch(() => ({}));
-          throw new Error(errorData.error || `Server error: ${orderRes.status}`);
+        const responseText = await orderRes.text();
+        let orderData;
+        try {
+          orderData = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Invalid JSON response:', responseText);
+          throw new Error(`Server returned invalid response (${orderRes.status})`);
         }
         
-        const orderData = await orderRes.json();
+        if (!orderRes.ok) {
+          throw new Error(orderData.error || `Server error: ${orderRes.status}`);
+        }
 
         if (!orderData.id) throw new Error(orderData.error || "Unable to initiate payment");
 
-        // 2. Open Razorpay Gateway Popup
         const options = {
           key: RAZORPAY_KEY,
           amount: orderData.amount,
@@ -976,28 +980,32 @@
           image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360899/busywud_logo.avif",
           order_id: orderData.id,
           handler: async function (response) {
-            const verifyRes = await fetch(`${API_BASE}/verify-payment`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                amount: totalAmount,
-                customer: currentUser,
-                items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }]
-              })
-            });
+            try {
+              const verifyRes = await fetch(`${API_BASE}/verify-payment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  amount: totalAmount,
+                  customer: currentUser,
+                  items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }]
+                })
+              });
 
-            if (verifyRes.ok) {
-              alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}. Order saved to database.`);
-              cartQuantity = 0;
-              localStorage.setItem('busywud_cart_qty', 0);
-              updateCartDisplay();
-              toggleCartDrawer(false);
-            } else {
-              const errData = await verifyRes.json().catch(() => ({}));
-              alert('Payment verification failed: ' + (errData.error || 'Unknown error'));
+              if (verifyRes.ok) {
+                alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}. Order saved to database.`);
+                cartQuantity = 0;
+                localStorage.setItem('busywud_cart_qty', 0);
+                updateCartDisplay();
+                toggleCartDrawer(false);
+              } else {
+                const errData = await verifyRes.json().catch(() => ({}));
+                alert('Payment verification failed: ' + (errData.error || 'Unknown error'));
+              }
+            } catch (verifyErr) {
+              alert('Payment verification network error: ' + verifyErr.message);
             }
           },
           prefill: {
@@ -1013,7 +1021,7 @@
         rzp.open();
       } catch (err) {
         console.error('Payment error:', err);
-        alert("Payment Gateway Error: " + err.message);
+        alert("Payment Gateway Error: " + err.message + "\n\nPlease check:\n1. Server is running\n2. Internet connection\n3. Razorpay keys are configured");
       }
     }
 
@@ -1144,7 +1152,7 @@
     }
 
     function handleGoogleLogin() {
-      const googleClientId = '201650644316-uefqikcj950hebh971l3r48sgke9vj4a.apps.googleusercontent.com';
+      const googleClientId = '556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com';
       const redirectUri = window.location.origin + '/';
       const scope = 'profile email';
       const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;

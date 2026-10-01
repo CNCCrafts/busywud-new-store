@@ -242,6 +242,10 @@ app.put('/api/orders/:id', async (req, res) => {
   }
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/api/product', async (req, res) => {
   try {
     const product = await Product.findOne();
