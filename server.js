@@ -69,7 +69,7 @@ async function sendOrderConfirmationEmail(order) {
   if (!transporter) return;
   try {
     await transporter.sendMail({
-      from: '"Busywud Store" <' + (process.env.EMAIL_USER || 'orders@busywud.com') + '>',
+      from: '"Busywud Store" <' + (process.env.EMAIL_USER || 'busywud@gmail.com') + '>',
       to: order.customer?.email || 'customer@busywud.com',
       subject: 'Order Confirmation - Busywud',
       html: `
