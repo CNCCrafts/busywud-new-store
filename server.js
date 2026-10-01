@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const path = require('path');
 const session = require('express-session');
 const nodemailer = require('nodemailer');
-const cloudinary = require('cloudinary').v2');
+const cloudinary = require('cloudinary').v2;
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
