@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
@@ -99,7 +99,7 @@ async function sendOrderConfirmationEmail(order) {
         <p>Hi ${order.customer?.name || 'Customer'},</p>
         <p>Your order has been placed successfully.</p>
         <p><strong>Order ID:</strong> ${order.orderId}</p>
-        <p><strong>Amount:</strong> ₹${order.amount}</p>
+        <p><strong>Amount:</strong> â‚¹${order.amount}</p>
         <p><strong>Status:</strong> ${order.status}</p>
         ${order.shipment?.waybill ? `<p><strong>Tracking:</strong> <a href="${order.shipment.trackingUrl || '#'}">${order.shipment.waybill}</a></p>` : ''}
         <p>We'll notify you once it ships.</p>
@@ -229,7 +229,7 @@ app.put('/api/my-account', async (req, res) => {
 });
 
 // Admin: update order status / shipment status
-app.put('/api/orders/:id', async (req, res) => {
+app.put('/api/orders/:id', requireAdmin, async (req, res) => {
   try {
     const { status, triggerShipment } = req.body;
     const updateData = {};
@@ -264,7 +264,7 @@ app.put('/api/orders/:id', async (req, res) => {
 
 const os = require('os');
 
-app.get('/api/debug/checkout-test', async (req, res) => {
+app.get('/api/debug/checkout-test', requireAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('orders')
@@ -424,7 +424,7 @@ app.get('/api/video', (req, res) => {
   res.json({ url: videoUrl, publicId: publicId });
 });
 
-app.put('/api/product', async (req, res) => {
+app.put('/api/product', requireAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -473,7 +473,18 @@ app.get('/api/admin/check', (req, res) => {
   res.json({ loggedIn: !!req.session.adminLoggedIn });
 });
 
-app.get('/api/products', async (req, res) => {
+// The Supabase policies are permissive by necessity (the server holds the
+// anon key), so the admin session is the actual access control on these
+// routes. Without it /api/orders hands every customer's name, email, phone
+// and address to anyone who requests it.
+function requireAdmin(req, res, next) {
+  if (!req.session || !req.session.adminLoggedIn) {
+    return res.status(401).json({ error: 'Admin authentication required' });
+  }
+  next();
+}
+
+app.get('/api/products', requireAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -487,7 +498,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', requireAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -502,7 +513,7 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
-app.put('/api/products/:id', async (req, res) => {
+app.put('/api/products/:id', requireAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -518,7 +529,7 @@ app.put('/api/products/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/products/:id', async (req, res) => {
+app.delete('/api/products/:id', requireAdmin, async (req, res) => {
   try {
     const { error } = await supabase
       .from('products')
@@ -783,7 +794,7 @@ app.post('/api/razorpay/webhook', async (req, res) => {
   res.json({ received: true });
 });
 
-app.get('/api/orders', async (req, res) => {
+app.get('/api/orders', requireAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('orders')
@@ -812,7 +823,7 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-app.get('/api/contacts', async (req, res) => {
+app.get('/api/contacts', requireAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('contacts')
