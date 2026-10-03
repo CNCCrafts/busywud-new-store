@@ -323,6 +323,7 @@ app.get('/api/health', async (req, res) => {
       razorpayKey: process.env.RAZORPAY_KEY_ID
         ? (process.env.RAZORPAY_KEY_ID.startsWith('rzp_test_') ? 'configured_test_mode' : 'configured_live')
         : 'missing',
+      razorpayAuth: razorpayAuthState,
       razorpayWebhook: process.env.RAZORPAY_WEBHOOK_SECRET ? 'configured' : 'missing',
       writeCheck: 'use /api/health/deep'
     });
@@ -531,6 +532,20 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
+// Razorpay rejects bad credentials with a 401 and a generic description.
+// Retrying those only wastes time, so classify before deciding to retry.
+function classifyRazorpayError(err) {
+  const status = err?.statusCode || err?.status;
+  const description = err?.description || err?.error?.description || err?.message || 'unknown error';
+  const authFailed = status === 401 || status === 403 || /auth/i.test(description);
+  return {
+    status,
+    description,
+    authFailed,
+    retryable: !authFailed && (!status || status === 429 || status >= 500)
+  };
+}
+
 app.post('/api/create-order', async (req, res) => {
   try {
     const { amount, customer, items, currency = "INR" } = req.body || {};
@@ -559,16 +574,25 @@ app.post('/api/create-order', async (req, res) => {
         order = await getRazorpay().orders.create(options);
         break;
       } catch (err) {
-        lastError = err;
-        console.error(`Razorpay order attempt ${attempt} failed:`, err.message);
-        if (attempt < 2) await new Promise(r => setTimeout(r, 600));
+        const info = classifyRazorpayError(err);
+        lastError = info;
+        console.error(`Razorpay order attempt ${attempt} failed (HTTP ${info.status}): ${info.description}`);
+
+        if (info.authFailed) {
+          return res.status(502).json({
+            error: 'Payment gateway credentials are invalid. Please contact support.',
+            gatewayReason: info.description
+          });
+        }
+        if (!info.retryable || attempt === 2) break;
+        await new Promise(r => setTimeout(r, 600));
       }
     }
 
     if (!order) {
       return res.status(502).json({
         error: 'Could not start the payment. Please try again.',
-        detail: lastError?.message
+        gatewayReason: lastError?.description
       });
     }
 
@@ -804,6 +828,31 @@ app.get('/api/contacts', async (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 
+// Fails loudly at boot instead of on a customer's first checkout attempt.
+// Only reads the account, it never creates an order.
+let razorpayAuthState = process.env.RAZORPAY_KEY_ID ? 'unchecked' : 'missing_keys';
+
+async function verifyRazorpayCredentials() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return;
+
+  try {
+    const account = await getRazorpay().accounts.fetch();
+    razorpayAuthState = 'valid';
+    console.log(`Razorpay credentials valid (mode: ${process.env.RAZORPAY_KEY_ID.split('_')[1]})`);
+
+    if (account && account.charge_enabled === false) {
+      razorpayAuthState = 'valid_charges_disabled';
+      console.warn('WARNING: Razorpay account exists but charges are disabled for it. Live payments will be rejected.');
+    }
+  } catch (err) {
+    const info = classifyRazorpayError(err);
+    razorpayAuthState = 'rejected';
+    console.error('WARNING: Razorpay credentials REJECTED: ' + info.description);
+    console.error('         Checkout will fail for every customer until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are corrected.');
+    console.error('         Copy both values from Razorpay Dashboard -> Settings -> API Keys, making sure they are from the same pair and mode.');
+  }
+}
+
 async function startServer() {
   try {
     console.log("Connecting to Supabase...");
@@ -819,6 +868,8 @@ async function startServer() {
       console.log('Supabase Connected');
       await seedDefaultProduct();
     }
+
+    verifyRazorpayCredentials();
 
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
