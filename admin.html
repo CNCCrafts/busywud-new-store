@@ -51,10 +51,10 @@
         <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Password</label>
         <input type="password" id="adminPassword" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow" placeholder="••••••••">
       </div>
-      <button type="submit" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-xl text-sm transition shadow">
+      <button type="submit" id="adminLoginBtn" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-xl text-sm transition shadow">
         Sign In
       </button>
-      <p id="adminLoginError" class="text-red-600 text-xs text-center hidden">Invalid credentials</p>
+      <p id="adminLoginError" class="text-red-600 text-xs text-center hidden"></p>
     </form>
 
     <div class="text-center mt-6">
@@ -63,26 +63,57 @@
   </div>
 
   <script>
+    function showAdminLoginError(message) {
+      const errorEl = document.getElementById('adminLoginError');
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+    }
+
+    function clearAdminLoginError() {
+      document.getElementById('adminLoginError').classList.add('hidden');
+    }
+
     async function handleAdminLogin(e) {
       e.preventDefault();
-      const email = document.getElementById('adminEmail').value;
-      const password = document.getElementById('adminPassword').value;
-      const errorEl = document.getElementById('adminLoginError');
+      const email = document.getElementById('adminEmail').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const btn = document.getElementById('adminLoginBtn');
+
+      clearAdminLoginError();
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
 
       try {
         const res = await fetch('/api/admin/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({ email, password })
         });
-        const data = await res.json();
-        if (data.success) {
-          window.location.href = '/admin';
-        } else {
-          errorEl.classList.remove('hidden');
+
+        const raw = await res.text();
+        let data = {};
+        try {
+          data = JSON.parse(raw);
+        } catch (parseErr) {
+          throw new Error(`Server returned ${res.status}. Is the backend running?`);
         }
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || `Login failed (${res.status})`);
+        }
+
+        const check = await fetch('/api/admin/check', { credentials: 'same-origin' });
+        const checkData = await check.json();
+        if (!checkData.loggedIn) {
+          throw new Error('Session was not saved. Please try again.');
+        }
+
+        window.location.href = '/admin';
       } catch (err) {
-        errorEl.classList.remove('hidden');
+        showAdminLoginError(err.message);
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
       }
     }
   </script>

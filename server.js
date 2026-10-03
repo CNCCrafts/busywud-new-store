@@ -28,7 +28,13 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'busywud-admin-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  name: 'connect.sid',
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false,
+    maxAge: 1000 * 60 * 60 * 8
+  }
 }));
 
 app.get('/', (req, res) => {
@@ -42,13 +48,23 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+let razorpay = null;
+function getRazorpay() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw new Error('Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env');
+  }
+  if (!razorpay) {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+  }
+  return razorpay;
+}
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@busywud.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@3360';
+const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_CONFIGURED = Boolean(ADMIN_EMAIL && ADMIN_PASSWORD);
 
 let transporter = null;
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
@@ -404,13 +420,27 @@ app.put('/api/product', async (req, res) => {
 });
 
 app.post('/api/admin/login', (req, res) => {
-  const { email, password } = req.body;
+  if (!ADMIN_CONFIGURED) {
+    return res.status(503).json({ success: false, message: 'Admin login is not configured. Set ADMIN_EMAIL and ADMIN_PASSWORD in .env' });
+  }
+
+  const body = req.body || {};
+  const email = String(body.email || '').trim().toLowerCase();
+  const password = String(body.password || '').trim();
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password are required' });
+  }
+
   if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
     req.session.adminLoggedIn = true;
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
+    return req.session.save(err => {
+      if (err) return res.status(500).json({ success: false, message: 'Could not start session' });
+      res.json({ success: true });
+    });
   }
+
+  res.status(401).json({ success: false, message: 'Invalid credentials' });
 });
 
 app.post('/api/admin/logout', (req, res) => {
@@ -504,7 +534,7 @@ app.post('/api/create-order', async (req, res) => {
     
     while (retries > 0) {
       try {
-        order = await razorpay.orders.create(options);
+        order = await getRazorpay().orders.create(options);
         console.log('Razorpay order created:', order.id);
         
         const { data, error } = await supabase
@@ -632,23 +662,32 @@ const PORT = process.env.PORT || 8080;
 async function startServer() {
   try {
     console.log("Connecting to Supabase...");
-    
+
     const { data, error } = await supabase
       .from('products')
       .select('id', { count: 'exact', head: true });
-    
-    if (error) {
-      console.error('Supabase connection test failed:', error.message);
-      throw new Error('Cannot connect to Supabase: ' + error.message);
-    }
-    
-    console.log('Supabase Connected');
 
-    await seedDefaultProduct();
+    if (error) {
+      console.warn('Supabase connection test failed:', error.message);
+      console.warn('Store data may be unavailable, admin login will still work.');
+    } else {
+      console.log('Supabase Connected');
+      await seedDefaultProduct();
+    }
 
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`Admin panel: http://localhost:${PORT}/admin`);
+
+      if (!process.env.SESSION_SECRET) {
+        console.warn('WARNING: SESSION_SECRET is not set, using the insecure default.');
+      }
+      if (!ADMIN_CONFIGURED) {
+        console.warn('WARNING: ADMIN_EMAIL/ADMIN_PASSWORD not set in .env, admin login is disabled.');
+      }
+      if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+        console.warn('WARNING: Razorpay keys missing, checkout will fail until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set.');
+      }
     });
   } catch (err) {
     console.error('CRITICAL: Supabase Connection Failed');

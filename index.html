@@ -40,17 +40,10 @@
             marquee: {
               '0%': { transform: 'translateX(0%)' },
               '100%': { transform: 'translateX(-50%)' }
-            },
-            riseUp: {
-              '0%': { transform: 'translateY(105vh) scale(0.7)', opacity: '0' },
-              '10%': { opacity: '0.85' },
-              '90%': { opacity: '0.85' },
-              '100%': { transform: 'translateY(-15vh) scale(1.1)', opacity: '0' }
             }
           },
           animation: {
-            'marquee': 'marquee 22s linear infinite',
-            'rise': 'riseUp 7s linear forwards'
+            'marquee': 'marquee 22s linear infinite'
           }
         }
       }
@@ -63,22 +56,9 @@
     .glass-nav {
       backdrop-filter: blur(14px);
     }
-    .passive-bubble {
-      background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.9), rgba(255, 200, 0, 0.45) 45%, rgba(255, 200, 0, 0.15) 70%, rgba(255, 255, 255, 0.6) 100%);
-      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.8), 0 8px 24px rgba(255, 200, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(1px);
-    }
-    .dark .passive-bubble {
-      background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.7), rgba(255, 200, 0, 0.35) 45%, rgba(255, 200, 0, 0.08) 70%, rgba(255, 255, 255, 0.3) 100%);
-      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.5), 0 8px 24px rgba(255, 200, 0, 0.2);
-    }
   </style>
 </head>
 <body class="bg-brand-grayBg dark:bg-brand-black text-brand-black dark:text-gray-100 flex flex-col min-h-screen selection:bg-brand-yellow selection:text-black transition-colors duration-300">
-
-  <!-- ==================== 10-SECOND PASSIVE BUBBLE OVERLAY ==================== -->
-  <div id="bubbleCanvas" class="fixed inset-0 pointer-events-none z-50 overflow-hidden"></div>
 
   <!-- ==================== NAVIGATION BAR ==================== -->
   <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-300">
@@ -1059,29 +1039,6 @@
       else icon.className = 'fa-solid fa-moon text-base';
     }
 
-    // --- 10-SECOND BUBBLES ---
-    function launchTenSecondBubbles() {
-      const container = document.getElementById('bubbleCanvas');
-      if (!container) return;
-      for (let i = 0; i < 14; i++) {
-        const bubble = document.createElement('div');
-        const size = Math.floor(Math.random() * 50) + 40;
-        const left = Math.floor(Math.random() * 90) + 5;
-        const delay = (Math.random() * 3.5).toFixed(1);
-        bubble.className = 'passive-bubble pointer-events-none rounded-full absolute animate-rise';
-        bubble.style.width = `${size}px`;
-        bubble.style.height = `${size}px`;
-        bubble.style.left = `${left}%`;
-        bubble.style.animationDelay = `${delay}s`;
-        container.appendChild(bubble);
-      }
-      setTimeout(() => {
-        container.style.transition = 'opacity 1s ease-out';
-        container.style.opacity = '0';
-        setTimeout(() => container.remove(), 1000);
-      }, 10000);
-    }
-
     // --- ROUTING ---
     function handleRouting() {
       const isPathAdmin = window.location.pathname.endsWith('/admin');
@@ -1385,7 +1342,6 @@
       loadVideoFromCloudinary();
       handleRouting();
       refreshAuthState();
-      launchTenSecondBubbles();
       handleOAuthCallback();
     });
   </script>
