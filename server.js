@@ -21,8 +21,14 @@ const supabase = createClient(
 );
 
 const app = express();
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
+}
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
-app.use(express.json());
+app.use(express.json({
+  limit: '1mb',
+  verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 app.use(express.static(__dirname));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'busywud-admin-secret',
@@ -297,18 +303,37 @@ app.get('/api/health', async (req, res) => {
         }
       }
     }
-    
-    let dbWriteTest = 'not_tested';
+
     let dbReadTest = 'not_tested';
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('products')
         .select('id', { count: 'exact', head: true });
       dbReadTest = error ? 'read_failed: ' + error.message : 'read_ok';
     } catch (err) {
       dbReadTest = 'read_failed: ' + err.message;
     }
-    
+
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      serverIps: ips,
+      database: 'supabase',
+      databaseRead: dbReadTest,
+      razorpayKey: process.env.RAZORPAY_KEY_ID
+        ? (process.env.RAZORPAY_KEY_ID.startsWith('rzp_test_') ? 'configured_test_mode' : 'configured_live')
+        : 'missing',
+      razorpayWebhook: process.env.RAZORPAY_WEBHOOK_SECRET ? 'configured' : 'missing',
+      writeCheck: 'use /api/health/deep'
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
+});
+
+app.get('/api/health/deep', async (req, res) => {
+  try {
+    let dbWriteTest = 'not_tested';
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -321,10 +346,10 @@ app.get('/api/health', async (req, res) => {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       dbWriteTest = 'write_ok';
-      
+
       await supabase
         .from('orders')
         .delete()
@@ -332,16 +357,10 @@ app.get('/api/health', async (req, res) => {
     } catch (err) {
       dbWriteTest = 'write_failed: ' + err.message;
     }
-    
-    res.json({ 
-      status: 'ok', 
-      timestamp: new Date().toISOString(),
-      serverIps: ips,
-      database: 'supabase',
-      databaseRead: dbReadTest,
-      databaseWrite: dbWriteTest,
-      mongoUri: 'removed',
-      razorpayKey: process.env.RAZORPAY_KEY_ID ? 'configured' : 'missing'
+
+    res.json({
+      status: dbWriteTest === 'write_ok' ? 'ok' : 'degraded',
+      databaseWrite: dbWriteTest
     });
   } catch (err) {
     res.status(500).json({ status: 'error', error: err.message });
@@ -514,104 +533,230 @@ app.delete('/api/products/:id', async (req, res) => {
 
 app.post('/api/create-order', async (req, res) => {
   try {
-    const { amount, customer, items, currency = "INR" } = req.body;
-    
-    if (!amount || amount <= 0) {
+    const { amount, customer, items, currency = "INR" } = req.body || {};
+
+    const amountInRupees = Number(amount);
+    if (!Number.isFinite(amountInRupees) || amountInRupees <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    console.log(`Creating order for amount: ${amount}, customer: ${customer?.email || 'guest'}`);
-
     const options = {
-      amount: Math.round(amount * 100),
+      amount: Math.round(amountInRupees * 100),
       currency,
       receipt: `rcpt_${Date.now()}`
     };
 
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(503).json({
+        error: 'Payments are not configured on this server. Please contact support.'
+      });
+    }
+
     let order;
-    let pendingOrder;
-    let retries = 3;
-    
-    while (retries > 0) {
+    let lastError;
+    for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         order = await getRazorpay().orders.create(options);
-        console.log('Razorpay order created:', order.id);
-        
-        const { data, error } = await supabase
-          .from('orders')
-          .insert({
-            order_id: order.id,
-            amount: amount,
-            currency: currency,
-            status: "CREATED",
-            customer: customer || { name: "Guest Parent", email: "parent@busywud.com" },
-            items: items || []
-          })
-          .select()
-          .single();
-        
-        if (error) throw error;
-        pendingOrder = data;
-        console.log('Order saved to Supabase:', pendingOrder.id);
         break;
       } catch (err) {
-        retries--;
-        console.error(`Order creation attempt failed (${retries} retries left):`, err.message);
-        if (retries === 0) throw err;
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        lastError = err;
+        console.error(`Razorpay order attempt ${attempt} failed:`, err.message);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 600));
       }
     }
 
-    res.json({ ...order, dbOrderId: pendingOrder.id });
+    if (!order) {
+      return res.status(502).json({
+        error: 'Could not start the payment. Please try again.',
+        detail: lastError?.message
+      });
+    }
+
+    // Persist the pending order, but never block the customer on a DB hiccup:
+    // the webhook reconciles the order later if this write is lost.
+    let dbOrderId = null;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          order_id: order.id,
+          amount: amountInRupees,
+          currency: currency,
+          status: "CREATED",
+          customer: customer || { name: "Guest Parent", email: "parent@busywud.com" },
+          items: items || []
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      dbOrderId = data.id;
+    } catch (dbErr) {
+      console.error('Order persist failed (payment can still proceed):', dbErr.message);
+    }
+
+    res.json({ ...order, dbOrderId, dbOrderSaved: Boolean(dbOrderId) });
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create order. Please try again.' });
+    res.status(500).json({ error: 'Failed to start payment. Please try again.' });
   }
 });
 
+function safeSignatureMatch(expected, received) {
+  if (typeof received !== 'string' || received.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+}
+
+// Shipping and email must never decide whether a captured payment is a success.
+function fulfilOrderInBackground(order) {
+  if (!order) return;
+  setImmediate(async () => {
+    try {
+      const shipmentDetails = await createParcelGuruShipment(order);
+      const { error } = await supabase
+        .from('orders')
+        .update({ shipment: shipmentDetails })
+        .eq('order_id', order.order_id);
+      if (error) throw error;
+
+      const { data: fresh } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('order_id', order.order_id)
+        .single();
+      await sendOrderConfirmationEmail(fresh || order);
+    } catch (err) {
+      console.error('Post-payment fulfilment error (payment itself is fine):', err.message);
+    }
+  });
+}
+
+// Single source of truth for "this Razorpay order is genuinely paid".
+async function markOrderPaid(razorpayOrderId, razorpayPaymentId, fallback = {}) {
+  const { data: existing } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('order_id', razorpayOrderId)
+    .maybeSingle();
+
+  let order = existing;
+
+  if (!order) {
+    const { data: inserted, error } = await supabase
+      .from('orders')
+      .insert({
+        order_id: razorpayOrderId,
+        payment_id: razorpayPaymentId,
+        amount: fallback.amount || 0,
+        currency: fallback.currency || 'INR',
+        status: "PAID",
+        customer: fallback.customer || { name: "Guest Parent", email: "parent@busywud.com" },
+        items: fallback.items || []
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    order = inserted;
+  } else if (order.status !== 'PAID') {
+    const { data: updated, error } = await supabase
+      .from('orders')
+      .update({ payment_id: razorpayPaymentId, status: "PAID" })
+      .eq('order_id', razorpayOrderId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    order = updated;
+  }
+
+  return order;
+}
+
 app.post('/api/verify-payment', async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount, customer, items } = req.body || {};
+
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(503).json({ error: 'Payment verification is not configured on this server.' });
+    }
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: 'Incomplete payment verification payload.' });
+    }
 
-    if (razorpay_signature) {
-      const generatedSignature = crypto
-        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-        .digest('hex');
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
 
-      if (generatedSignature !== razorpay_signature) {
-        return res.status(400).json({ error: "Invalid payment signature" });
+    if (!safeSignatureMatch(expectedSignature, razorpay_signature)) {
+      return res.status(400).json({ error: "Invalid payment signature" });
+    }
+
+    // Razorpay is authoritative on whether money actually moved.
+    let rzpOrder = null;
+    try {
+      rzpOrder = await getRazorpay().orders.fetch(razorpay_order_id);
+    } catch (fetchErr) {
+      console.error('Could not fetch Razorpay order:', fetchErr.message);
+    }
+
+    if (rzpOrder) {
+      if (rzpOrder.status !== 'paid') {
+        return res.status(400).json({ error: `Payment not completed (order status: ${rzpOrder.status}).` });
+      }
+      const expectedPaise = Math.round(Number(amount) * 100);
+      if (Number.isFinite(expectedPaise) && rzpOrder.amount !== expectedPaise) {
+        console.error(`Amount mismatch for ${razorpay_order_id}: paid ${rzpOrder.amount} vs expected ${expectedPaise}`);
+        return res.status(400).json({ error: 'Payment amount does not match the order.' });
       }
     }
 
-    const { data: existingOrder } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('order_id', razorpay_order_id)
-      .single();
-    
-    const shipmentDetails = await createParcelGuruShipment(existingOrder);
+    const order = await markOrderPaid(razorpay_order_id, razorpay_payment_id, { amount, customer, items });
 
-    const { data: updatedOrder, error } = await supabase
-      .from('orders')
-      .update({
-        payment_id: razorpay_payment_id,
-        status: "PAID",
-        shipment: shipmentDetails
-      })
-      .eq('order_id', razorpay_order_id)
-      .select()
-      .single();
-    
-    if (error) throw error;
+    fulfilOrderInBackground(order);
 
-    await sendOrderConfirmationEmail(updatedOrder);
-
-    res.json({ success: true, order: updatedOrder });
+    res.json({ success: true, order });
   } catch (err) {
     console.error('Verify payment error:', err);
-    res.status(500).json({ error: err.message || 'Payment verification failed' });
+    res.status(500).json({ error: 'Payment received but could not be saved. Our team has been notified.' });
   }
+});
+
+// Safety net: recovers orders whose browser-side verification never completed.
+app.post('/api/razorpay/webhook', async (req, res) => {
+  const signature = req.get('x-razorpay-signature');
+
+  if (process.env.RAZORPAY_WEBHOOK_SECRET) {
+    if (!signature) return res.status(400).json({ error: 'Missing webhook signature' });
+
+    const expected = crypto
+      .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
+      .update(req.rawBody || '')
+      .digest('hex');
+
+    if (!safeSignatureMatch(expected, signature)) {
+      return res.status(400).json({ error: 'Invalid webhook signature' });
+    }
+  } else {
+    console.warn('RAZORPAY_WEBHOOK_SECRET is not set, processing webhook without verification');
+  }
+
+  const event = req.body?.event;
+  const payload = req.body?.payload || {};
+  const entity = payload.payment?.entity || {};
+
+  if (event === 'payment.captured' && entity.order_id) {
+    try {
+      const order = await markOrderPaid(entity.order_id, entity.id);
+      fulfilOrderInBackground(order);
+    } catch (err) {
+      console.error('Webhook fulfilment error:', err.message);
+      return res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  }
+
+  res.json({ received: true });
 });
 
 app.get('/api/orders', async (req, res) => {
@@ -687,6 +832,14 @@ async function startServer() {
       }
       if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
         console.warn('WARNING: Razorpay keys missing, checkout will fail until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set.');
+      } else if (process.env.RAZORPAY_KEY_ID.startsWith('rzp_test_')) {
+        console.warn('WARNING: Razorpay TEST key in use but the checkout widget uses a LIVE key. Keys must match the same mode.');
+      }
+      if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
+        console.warn('WARNING: RAZORPAY_WEBHOOK_SECRET not set. Payments whose browser verification fails will not be recovered automatically.');
+      }
+      if (!process.env.TRUST_PROXY && process.env.NODE_ENV === 'production') {
+        console.warn('WARNING: TRUST_PROXY not set. Behind a load balancer, client IPs and HTTPS detection will be wrong.');
       }
     });
   } catch (err) {

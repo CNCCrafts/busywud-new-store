@@ -621,11 +621,20 @@
     let authMode = 'signin';
 
     // Fetch product live from MongoDB
+    // The database uses snake_case columns; the UI expects camelCase.
+    function normaliseProduct(raw) {
+      return {
+        ...raw,
+        oldPrice: raw.oldPrice ?? raw.old_price,
+        price: Number(raw.price)
+      };
+    }
+
     async function loadProductFromMongo() {
       try {
         const res = await fetch(`${API_BASE}/product`);
         if (res.ok) {
-          activeProduct = await res.json();
+          activeProduct = normaliseProduct(await res.json());
           renderStoreProduct();
         }
       } catch (err) {
@@ -927,16 +936,20 @@
         return;
       }
 
-      const totalAmount = cartQuantity * activeProduct.price;
+      const unitPrice = Number(activeProduct.price);
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+        alert('This product has no valid price right now. Please contact support.');
+        return;
+      }
 
+      const totalAmount = Math.round(cartQuantity * unitPrice);
+
+      // Health is advisory only: a slow health probe must never block a payment.
       try {
         const healthRes = await fetch(`${API_BASE}/health`);
-        if (!healthRes.ok) {
-          throw new Error('Server is not responding. Please try again later.');
-        }
+        if (!healthRes.ok) console.warn('Health check returned', healthRes.status, 'continuing to payment');
       } catch (healthErr) {
-        alert('Cannot reach server. Please check:\n1. Server is running\n2. Internet connection\n3. Site URL is correct');
-        return;
+        console.warn('Health check unreachable, continuing to payment:', healthErr);
       }
 
       try {
@@ -1007,11 +1020,20 @@
           }
         };
 
+        if (typeof Razorpay === 'undefined') {
+          throw new Error('The Razorpay payment script did not load. This is usually an ad blocker or network restriction.');
+        }
+
         const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (resp) {
+          console.warn('Razorpay payment.failed', resp);
+          const reason = (resp.error && resp.error.description) || 'unknown reason';
+          alert('Payment did not complete: ' + reason + '\n\nNo money was deducted. You can safely try again.');
+        });
         rzp.open();
       } catch (err) {
         console.error('Payment error:', err);
-        alert("Payment Gateway Error: " + (err.message || 'Unknown error') + "\n\nPlease check:\n1. Server is running\n2. Internet connection\n3. Razorpay keys are configured");
+        alert("Payment could not start: " + (err.message || 'Unknown error'));
       }
     }
 
