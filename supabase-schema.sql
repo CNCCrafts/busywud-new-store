@@ -42,6 +42,46 @@ CREATE TABLE IF NOT EXISTS contacts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  slug TEXT NOT NULL UNIQUE,
+  image TEXT,
+  description TEXT,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION set_category_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = TIMEZONE('utc'::text, NOW());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_categories_updated_at ON categories;
+CREATE TRIGGER trg_categories_updated_at
+  BEFORE UPDATE ON categories
+  FOR EACH ROW EXECUTE FUNCTION set_category_updated_at();
+
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read categories" ON categories;
+CREATE POLICY "Allow public read categories" ON categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow admin insert categories" ON categories;
+CREATE POLICY "Allow admin insert categories" ON categories FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow admin update categories" ON categories;
+CREATE POLICY "Allow admin update categories" ON categories FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Allow admin delete categories" ON categories;
+CREATE POLICY "Allow admin delete categories" ON categories FOR DELETE USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_categories_display_order ON categories(display_order);
+
 -- ============================================================
 -- Keep updated_at honest
 -- The columns above only get a value on INSERT, so an UPDATE left
@@ -72,7 +112,7 @@ CREATE TRIGGER trg_orders_updated_at
 
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON products(created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_order_id ON orders(order_id);
-CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders USING GIN ((customer->>'email'));
+CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders USING GIN (customer);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at);

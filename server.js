@@ -51,7 +51,16 @@ app.get('/admin', (req, res) => {
   if (!req.session.adminLoggedIn) {
     return res.sendFile(path.join(__dirname, 'admin.html'));
   }
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
+});
+
+// Individual product page
+app.get('/product', (req, res) => {
+  res.sendFile(path.join(__dirname, 'product.html'));
+});
+
+app.get('/product/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'product.html'));
 });
 
 let razorpay = null;
@@ -484,7 +493,181 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-app.get('/api/products', requireAdmin, async (req, res) => {
+// Admin dashboard stats
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+  try {
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('amount, status, created_at');
+    if (ordersError) throw ordersError;
+
+    const totalRevenue = orders?.reduce((sum, o) => sum + (Number(o.amount) || 0), 0) || 0;
+    const totalOrders = orders?.length || 0;
+    const paidOrders = orders?.filter(o => o.status === 'PAID').length || 0;
+    const pendingOrders = orders?.filter(o => o.status === 'CREATED').length || 0;
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayOrders = orders?.filter(o => o.created_at?.startsWith(today)).length || 0;
+    const todayRevenue = orders?.filter(o => o.created_at?.startsWith(today) && o.status === 'PAID').reduce((sum, o) => sum + (Number(o.amount) || 0), 0) || 0;
+
+    const { data: products, error: productsError } = await supabase.from('products').select('id, title, stock, price');
+    if (productsError) throw productsError;
+
+    const totalProducts = products?.length || 0;
+    const lowStock = products?.filter(p => Number(p.stock) <= 5).length || 0;
+    const outOfStock = products?.filter(p => Number(p.stock) === 0).length || 0;
+
+    res.json({
+      totalRevenue, totalOrders, paidOrders, pendingOrders,
+      todayOrders, todayRevenue,
+      totalProducts, lowStock, outOfStock,
+      recentOrders: (orders || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Inventory management
+app.get('/api/admin/inventory', requireAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/inventory/:id', requireAdmin, async (req, res) => {
+  try {
+    const { stock, price, oldPrice, title, description, image, category, badge } = req.body;
+    const updateData = {};
+    if (stock !== undefined) updateData.stock = Number(stock);
+    if (price !== undefined) updateData.price = Number(price);
+    if (oldPrice !== undefined) updateData.old_price = Number(oldPrice);
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (image !== undefined) updateData.image = image;
+    if (category !== undefined) updateData.category = category;
+    if (badge !== undefined) updateData.badge = badge;
+
+    const { data, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin settings / change password
+app.post('/api/admin/change-password', requireAdmin, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    if (currentPassword !== ADMIN_PASSWORD) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
+    res.json({ success: true, message: 'Password changed successfully. Please update your .env file with the new password.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/update-settings', requireAdmin, async (req, res) => {
+  try {
+    const { adminEmail, adminPassword } = req.body;
+    res.json({ success: true, message: 'Settings updated. Please update your .env file with the new values.', newEmail: adminEmail, newPassword: adminPassword });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Categories - public read, admin write
+app.get('/api/categories', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('display_order', { ascending: true });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/categories', requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        name: body.name,
+        slug: body.slug || body.name.toLowerCase().replace(/\s+/g, '-'),
+        image: body.image || null,
+        description: body.description || '',
+        display_order: Number(body.display_order) || 0
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/categories/:id', requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const updateData = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.slug !== undefined) updateData.slug = body.slug;
+    if (body.image !== undefined) updateData.image = body.image;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.display_order !== undefined) updateData.display_order = Number(body.display_order);
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update(updateData)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/categories/:id', requireAdmin, async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/products', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -498,11 +681,38 @@ app.get('/api/products', requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/products', requireAdmin, async (req, res) => {
+app.get('/api/products/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .insert(req.body)
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Product not found' });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/products', requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const insertData = {
+      title: body.title,
+      badge: body.badge,
+      price: Number(body.price),
+      old_price: body.oldPrice !== undefined ? Number(body.oldPrice) : null,
+      stock: body.stock !== undefined ? Number(body.stock) : 0,
+      image: body.image,
+      description: body.description,
+      category: body.category
+    };
+    const { data, error } = await supabase
+      .from('products')
+      .insert(insertData)
       .select()
       .single();
     
@@ -515,9 +725,20 @@ app.post('/api/products', requireAdmin, async (req, res) => {
 
 app.put('/api/products/:id', requireAdmin, async (req, res) => {
   try {
+    const body = req.body || {};
+    const updateData = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.badge !== undefined) updateData.badge = body.badge;
+    if (body.price !== undefined) updateData.price = Number(body.price);
+    if (body.oldPrice !== undefined) updateData.old_price = Number(body.oldPrice);
+    if (body.stock !== undefined) updateData.stock = Number(body.stock);
+    if (body.image !== undefined) updateData.image = body.image;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.category !== undefined) updateData.category = body.category;
+
     const { data, error } = await supabase
       .from('products')
-      .update(req.body)
+      .update(updateData)
       .eq('id', req.params.id)
       .select()
       .single();

@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busywud | Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              yellow: '#FFC800',
+              yellowLight: '#FFFBEA',
+              yellowHover: '#E5B400',
+              black: '#111111',
+              cardDark: '#1A1A1A',
+              grayBg: '#F8F9FA'
+            }
+          },
+          fontFamily: {
+            display: ['Fredoka', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    h1, h2, h3, .font-display { font-family: 'Fredoka', sans-serif; }
+    .glass-nav { backdrop-filter: blur(14px); }
+    .nav-item { position: relative; }
+    .nav-item::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: #FFC800;
+      transition: width 0.3s;
+    }
+    .nav-item:hover::after, .nav-item.active::after { width: 100%; }
+  </style>
+</head>
+<body class="bg-brand-grayBg dark:bg-brand-black text-brand-black dark:text-gray-100 flex flex-col min-h-screen transition-colors duration-300">
+
+  <!-- ==================== NAVIGATION BAR ==================== -->
+  <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <h1 class="text-xl font-extrabold font-display">Admin Dashboard</h1>
+        <nav class="hidden md:flex items-center gap-1">
+          <button onclick="showSection('dashboard')" class="nav-item active px-3 py-2 text-sm font-semibold hover:text-brand-yellow transition-colors" data-section="dashboard">
+            <i class="fa-solid fa-chart-pie mr-1"></i> Dashboard
+          </button>
+          <button onclick="showSection('orders')" class="nav-item px-3 py-2 text-sm font-semibold hover:text-brand-yellow transition-colors" data-section="orders">
+            <i class="fa-solid fa-box mr-1"></i> Orders
+          </button>
+          <button onclick="showSection('products')" class="nav-item px-3 py-2 text-sm font-semibold hover:text-brand-yellow transition-colors" data-section="products">
+            <i class="fa-solid fa-tag mr-1"></i> Products
+          </button>
+          <button onclick="showSection('inventory')" class="nav-item px-3 py-2 text-sm font-semibold hover:text-brand-yellow transition-colors" data-section="inventory">
+            <i class="fa-solid fa-warehouse mr-1"></i> Inventory
+          </button>
+          <button onclick="showSection('media')" class="nav-item px-3 py-2 text-sm font-semibold hover:text-brand-yellow transition-colors" data-section="media">
+            <i class="fa-solid fa-images mr-1"></i> Media
+          </button>
+          <button onclick="showSection('settings')" class="nav-item px-3 py-2 text-sm font-semibold hover:text-brand-yellow transition-colors" data-section="settings">
+            <i class="fa-solid fa-gear mr-1"></i> Settings
+          </button>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="handleAdminLogout()" class="border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-bold px-4 py-2 rounded-xl transition">
+          <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Logout
+        </button>
+        <a href="/" class="bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black text-xs font-semibold px-4 py-2 rounded-xl transition">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Back to Store
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== DASHBOARD SECTION ==================== -->
+  <main id="dashboardSection" class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <h2 class="text-2xl font-extrabold mb-6">Dashboard Overview</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">Total Revenue</p>
+            <p id="totalRevenue" class="text-2xl font-extrabold mt-1">₹0</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-brand-yellow/20 flex items-center justify-center text-brand-yellow text-xl">
+            <i class="fa-solid fa-rupee-sign"></i>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">Total Orders</p>
+            <p id="totalOrders" class="text-2xl font-extrabold mt-1">0</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl">
+            <i class="fa-solid fa-cart-shopping"></i>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">Products</p>
+            <p id="totalProducts" class="text-2xl font-extrabold mt-1">0</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl">
+            <i class="fa-solid fa-tag"></i>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase">Low Stock</p>
+            <p id="lowStock" class="text-2xl font-extrabold mt-1">0</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <h3 class="text-lg font-extrabold mb-4">Recent Orders</h3>
+        <div id="recentOrdersList" class="space-y-2"></div>
+      </div>
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <h3 class="text-lg font-extrabold mb-4">Today's Summary</h3>
+        <div id="todaySummary" class="space-y-3"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== ORDERS SECTION ==================== -->
+  <main id="ordersSection" class="hidden flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <h2 class="text-2xl font-extrabold mb-6">Orders Management</h2>
+    <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <input type="text" id="orderSearch" onkeyup="filterOrders()" placeholder="Search orders..." class="border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-brand-yellow w-full max-w-md">
+        <button onclick="loadOrders()" class="ml-3 bg-brand-yellow hover:bg-brand-yellowHover text-brand-black text-xs font-bold px-4 py-2 rounded-xl transition">
+          <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+        </button>
+      </div>
+      <div id="ordersList" class="space-y-3"></div>
+    </div>
+  </main>
+
+  <!-- ==================== PRODUCTS SECTION ==================== -->
+  <main id="productsSection" class="hidden flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <h2 class="text-2xl font-extrabold mb-6">Products Management</h2>
+    <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm mb-6">
+      <button onclick="showProductForm()" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold text-xs px-4 py-2.5 rounded-xl transition shadow mb-4">
+        <i class="fa-solid fa-plus mr-1"></i> Add New Product
+      </button>
+      <div id="addProductPanel" class="hidden mb-6 p-5 bg-brand-grayBg dark:bg-brand-cardDark border-2 border-brand-yellow/50 rounded-2xl">
+        <h3 class="text-lg font-extrabold mb-4">Add New Product</h3>
+        <form id="addProductForm" onsubmit="addProduct(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Title</label>
+              <input type="text" id="addTitle" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Badge / Category</label>
+              <select id="addBadge" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+                <option value="">Select category</option>
+                <option value="Busy Board">Busy Board</option>
+                <option value="Wooden Toys">Wooden Toys</option>
+                <option value="Magnets">Magnets</option>
+                <option value="Festival Special">Festival Special</option>
+                <option value="Craft Special">Craft Special</option>
+                <option value="Educational">Educational</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Price (₹)</label>
+              <input type="number" id="addPrice" required min="1" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Old Price (₹)</label>
+              <input type="number" id="addOldPrice" min="1" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Stock</label>
+              <input type="number" id="addStock" min="0" value="0" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Category</label>
+              <select id="addCategory" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+                <option value="busy-board">Busy Board</option>
+                <option value="wooden-toys">Wooden Toys</option>
+                <option value="magnets">Magnets</option>
+                <option value="festival-special">Festival Special</option>
+                <option value="craft-special">Craft Special</option>
+                <option value="educational">Educational</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Product Image</label>
+            <div class="flex items-start gap-3">
+              <div class="flex-1">
+                <input type="text" id="addImg" placeholder="Or paste image URL here" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow mb-2">
+                <div class="text-[10px] text-gray-500 text-center">- OR -</div>
+                <input type="file" id="addImgFile" accept="image/*" onchange="previewImage(this, 'addImgPreview')" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm mt-2">
+                <input type="hidden" id="addImgBase64">
+              </div>
+              <img id="addImgPreview" class="hidden w-20 h-20 object-cover rounded-xl border border-gray-200 dark:border-zinc-700 flex-shrink-0">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Description</label>
+            <textarea id="addDesc" rows="3" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow"></textarea>
+          </div>
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-zinc-800">
+            <button type="button" onclick="hideProductForm()" class="border border-gray-300 text-gray-700 dark:text-gray-300 text-xs font-bold px-5 py-2.5 rounded-xl transition">Cancel</button>
+            <button type="submit" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold text-sm px-6 py-2.5 rounded-xl transition shadow">Add Product</button>
+          </div>
+        </form>
+      </div>
+      <div id="productsList" class="space-y-3"></div>
+    </div>
+  </main>
+
+  <!-- ==================== INVENTORY SECTION ==================== -->
+  <main id="inventorySection" class="hidden flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <h2 class="text-2xl font-extrabold mb-6">Inventory Management</h2>
+    <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Track and update stock levels across all products</p>
+        <button onclick="loadInventory()" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black text-xs font-bold px-4 py-2 rounded-xl transition">
+          <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+        </button>
+      </div>
+      <div id="inventoryList" class="space-y-3"></div>
+    </div>
+  </main>
+
+  <!-- ==================== MEDIA / CATEGORIES SECTION ==================== -->
+  <main id="mediaSection" class="hidden flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <h2 class="text-2xl font-extrabold mb-6">Media & Categories</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Categories -->
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-extrabold">Categories</h3>
+          <button onclick="showAddCategoryForm()" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black text-xs font-bold px-4 py-2 rounded-xl transition shadow">
+            <i class="fa-solid fa-plus mr-1"></i> Add Category
+          </button>
+        </div>
+        <div id="addCategoryPanel" class="hidden mb-4 p-4 bg-brand-grayBg dark:bg-zinc-800 rounded-xl border border-gray-200 dark:border-zinc-700">
+          <form id="addCategoryForm" onsubmit="addCategory(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Category Name</label>
+              <input type="text" id="catName" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Slug (URL-friendly name)</label>
+              <input type="text" id="catSlug" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Description</label>
+              <textarea id="catDesc" rows="2" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow"></textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Category Image</label>
+              <input type="file" id="catImageFile" accept="image/*" onchange="previewImage(this, 'catImagePreview')" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm">
+              <img id="catImagePreview" class="hidden mt-2 w-24 h-24 object-cover rounded-lg border border-gray-200">
+              <input type="hidden" id="catImage">
+            </div>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" onclick="hideAddCategoryForm()" class="border border-gray-300 text-gray-700 dark:text-gray-300 text-xs font-bold px-4 py-2 rounded-xl transition">Cancel</button>
+              <button type="submit" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold text-sm px-5 py-2 rounded-xl transition shadow">Save Category</button>
+            </div>
+          </form>
+        </div>
+        <div id="categoriesList" class="space-y-2">
+          <p class="text-xs text-gray-500 text-center py-4">Loading categories...</p>
+        </div>
+      </div>
+
+      <!-- Site Images -->
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <h3 class="text-lg font-extrabold mb-4">Site Images</h3>
+        <p class="text-xs text-gray-500 mb-4">Upload and manage images used across the website (logo, banners, category images, etc.)</p>
+        <div id="siteImagesList" class="space-y-3">
+          <p class="text-xs text-gray-500 text-center py-4">Loading...</p>
+        </div>
+        <div class="mt-4 p-4 bg-brand-grayBg dark:bg-zinc-800 rounded-xl border border-gray-200 dark:border-zinc-700">
+          <h4 class="text-sm font-bold mb-3">Upload New Image</h4>
+          <form onsubmit="uploadSiteImage(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Image Name / Key</label>
+              <input type="text" id="siteImageKey" required placeholder="e.g., logo, banner-home, category-busy-board" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Image File</label>
+              <input type="file" id="siteImageFile" accept="image/*" onchange="previewImage(this, 'siteImagePreview')" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm">
+              <img id="siteImagePreview" class="hidden mt-2 w-32 h-32 object-cover rounded-lg border border-gray-200">
+            </div>
+            <button type="submit" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold text-sm py-2.5 rounded-xl transition shadow">
+              <i class="fa-solid fa-upload mr-1"></i> Upload Image
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== SETTINGS SECTION ==================== -->
+  <main id="settingsSection" class="hidden flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <h2 class="text-2xl font-extrabold mb-6">Admin Settings</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <h3 class="text-lg font-extrabold mb-4">Change Admin Password</h3>
+        <form id="changePasswordForm" onsubmit="changePassword(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Current Password</label>
+            <input type="password" id="currentPassword" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">New Password</label>
+            <input type="password" id="newPassword" required minlength="6" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Confirm New Password</label>
+            <input type="password" id="confirmPassword" required minlength="6" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <button type="submit" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold text-sm px-6 py-2.5 rounded-xl transition shadow">Update Password</button>
+          <p id="passwordMessage" class="text-xs hidden"></p>
+        </form>
+      </div>
+      <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/30 rounded-2xl p-5 shadow-sm">
+        <h3 class="text-lg font-extrabold mb-4">Update Admin Credentials</h3>
+        <form id="updateSettingsForm" onsubmit="updateAdminSettings(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Admin Email</label>
+            <input type="email" id="adminEmail" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">New Password</label>
+            <input type="password" id="adminPassword" minlength="6" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+          </div>
+          <p class="text-xs text-gray-500">Note: After updating, you must manually update your .env file with the new values and restart the server.</p>
+          <button type="submit" class="bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold text-sm px-6 py-2.5 rounded-xl transition shadow">Update Credentials</button>
+          <p id="settingsMessage" class="text-xs hidden"></p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <script>
+    const API_BASE = '/api';
+
+    function showSection(section) {
+      document.querySelectorAll('main[id$="Section"]').forEach(el => el.classList.add('hidden'));
+      document.getElementById(section + 'Section').classList.remove('hidden');
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
+      if (section === 'dashboard') loadDashboard();
+      else if (section === 'orders') loadOrders();
+      else if (section === 'products') loadProducts();
+      else if (section === 'inventory') loadInventory();
+      else if (section === 'media') loadMedia();
+    }
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/stats`);
+        if (!res.ok) throw new Error('Failed to load stats');
+        const data = await res.json();
+        document.getElementById('totalRevenue').innerText = `₹${data.totalRevenue?.toLocaleString('en-IN') || 0}`;
+        document.getElementById('totalOrders').innerText = data.totalOrders || 0;
+        document.getElementById('totalProducts').innerText = data.totalProducts || 0;
+        document.getElementById('lowStock').innerText = data.lowStock || 0;
+
+        const recentOrdersList = document.getElementById('recentOrdersList');
+        if (data.recentOrders?.length) {
+          recentOrdersList.innerHTML = data.recentOrders.map(o => `
+            <div class="flex items-center justify-between p-3 bg-brand-grayBg dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800">
+              <div>
+                <p class="text-xs font-bold">${o.order_id}</p>
+                <p class="text-[11px] text-gray-500">${o.customer?.name || 'Guest'} - ${o.customer?.email || ''}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs font-bold">₹${Number(o.amount).toLocaleString('en-IN')}</p>
+                <span class="text-[10px] px-2 py-0.5 rounded-full ${o.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">${o.status}</span>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          recentOrdersList.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">No orders yet</p>';
+        }
+
+        const todaySummary = document.getElementById('todaySummary');
+        todaySummary.innerHTML = `
+          <div class="flex items-center justify-between p-3 bg-brand-grayBg dark:bg-brand-cardDark rounded-xl">
+            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Today's Orders</span>
+            <span class="text-sm font-bold">${data.todayOrders || 0}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-grayBg dark:bg-brand-cardDark rounded-xl">
+            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Today's Revenue</span>
+            <span class="text-sm font-bold">₹${(data.todayRevenue || 0).toLocaleString('en-IN')}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-grayBg dark:bg-brand-cardDark rounded-xl">
+            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Paid Orders</span>
+            <span class="text-sm font-bold">${data.paidOrders || 0}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-grayBg dark:bg-brand-cardDark rounded-xl">
+            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Pending Orders</span>
+            <span class="text-sm font-bold">${data.pendingOrders || 0}</span>
+          </div>
+        `;
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
+      }
+    }
+
+    async function loadOrders() {
+      try {
+        const res = await fetch(`${API_BASE}/orders`);
+        if (!res.ok) throw new Error('Failed to load orders');
+        const orders = await res.json();
+        const container = document.getElementById('ordersList');
+        if (!orders.length) {
+          container.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">No orders found.</p>';
+          return;
+        }
+        container.innerHTML = orders.map(o => `
+          <div class="border border-gray-200 dark:border-zinc-700 rounded-xl p-4">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="text-xs font-bold">Order ID: ${o.order_id}</p>
+                <p class="text-[11px] text-gray-500">${new Date(o.created_at).toLocaleString('en-IN')}</p>
+              </div>
+              <span class="text-[10px] px-2 py-1 rounded-full font-bold ${o.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">${o.status}</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div><span class="font-semibold">Customer:</span> ${o.customer?.name || 'Guest'}</div>
+              <div><span class="font-semibold">Email:</span> ${o.customer?.email || '-'}</div>
+              <div><span class="font-semibold">Phone:</span> ${o.customer?.phone || '-'}</div>
+              <div><span class="font-semibold">Address:</span> ${o.customer?.address || '-'}</div>
+              <div><span class="font-semibold">Pincode:</span> ${o.customer?.pincode || '-'}</div>
+              <div><span class="font-semibold">Amount:</span> ₹${Number(o.amount).toLocaleString('en-IN')}</div>
+            </div>
+            ${o.shipment ? `<div class="mt-2 text-xs"><span class="font-semibold">Shipment:</span> ${o.shipment.waybill || 'N/A'} - <a href="${o.shipment.trackingUrl || '#'}" target="_blank" class="text-brand-yellow hover:underline">Track</a></div>` : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load orders:', err);
+      }
+    }
+
+    function filterOrders() {
+      const query = document.getElementById('orderSearch').value.toLowerCase();
+      const cards = document.querySelectorAll('#ordersList > div');
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = text.includes(query) ? '' : 'none';
+      });
+    }
+
+    async function loadProducts() {
+      try {
+        const res = await fetch(`${API_BASE}/products`);
+        if (!res.ok) throw new Error('Failed to load products');
+        const products = await res.json();
+        const container = document.getElementById('productsList');
+        if (!products.length) {
+          container.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">No products found.</p>';
+          return;
+        }
+        container.innerHTML = products.map(p => `
+          <div class="border border-gray-200 dark:border-zinc-700 rounded-xl p-4">
+            <div class="flex items-start gap-4">
+              <img src="${p.image || 'https://placehold.co/120x120/FFC800/111111?text=Product'}" class="w-20 h-20 rounded-xl object-cover flex-shrink-0" onerror="this.src='https://placehold.co/120x120/FFC800/111111?text=Product'">
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-bold truncate">${p.title}</h4>
+                <p class="text-xs text-gray-500">${p.badge || ''}</p>
+                <div class="flex items-center gap-3 mt-1 text-xs">
+                  <span class="font-bold">₹${Number(p.price).toLocaleString('en-IN')}</span>
+                  ${p.oldPrice ? `<span class="text-gray-400 line-through">₹${Number(p.oldPrice).toLocaleString('en-IN')}</span>` : ''}
+                  <span class="px-2 py-0.5 rounded-full ${p.stock > 10 ? 'bg-emerald-100 text-emerald-700' : p.stock > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}">${p.stock} in stock</span>
+                </div>
+              </div>
+              <div class="flex gap-2 flex-shrink-0">
+                <button onclick="editProduct('${p.id}')" class="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 transition">
+                  <i class="fa-solid fa-pen mr-1"></i> Edit
+                </button>
+                <button onclick="deleteProduct('${p.id}')" class="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-200 transition">
+                  <i class="fa-solid fa-trash mr-1"></i> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load products:', err);
+      }
+    }
+
+    function showProductForm() {
+      document.getElementById('addProductPanel').classList.remove('hidden');
+    }
+    function hideProductForm() {
+      document.getElementById('addProductPanel').classList.add('hidden');
+    }
+
+    async function addProduct(e) {
+      e.preventDefault();
+      const base64Image = document.getElementById('addImgBase64').value;
+      const urlImage = document.getElementById('addImg').value;
+      const product = {
+        title: document.getElementById('addTitle').value,
+        badge: document.getElementById('addBadge').value,
+        price: Number(document.getElementById('addPrice').value),
+        oldPrice: Number(document.getElementById('addOldPrice').value) || null,
+        stock: Number(document.getElementById('addStock').value) || 0,
+        image: base64Image || urlImage,
+        description: document.getElementById('addDesc').value,
+        category: document.getElementById('addCategory').value || 'busy-board'
+      };
+      try {
+        const res = await fetch(`${API_BASE}/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(product)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          hideProductForm();
+          document.getElementById('addProductForm').reset();
+          document.getElementById('addImgPreview').classList.add('hidden');
+          document.getElementById('addImgBase64').value = '';
+          loadProducts();
+          loadInventory();
+          alert('Product added successfully');
+        } else {
+          alert('Failed to add product: ' + (data.error || res.statusText || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function editProduct(id) {
+      const newStock = prompt('Enter new stock quantity:');
+      if (newStock === null) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/inventory/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stock: Number(newStock) })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          loadProducts();
+          loadInventory();
+          alert('Stock updated');
+        } else {
+          alert('Failed to update stock: ' + (data.error || res.statusText || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('Are you sure you want to delete this product?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          loadProducts();
+          loadInventory();
+          alert('Product deleted');
+        } else {
+          alert('Failed to delete product: ' + (data.error || res.statusText || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function loadInventory() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/inventory`);
+        if (!res.ok) throw new Error('Failed to load inventory');
+        const items = await res.json();
+        const container = document.getElementById('inventoryList');
+        if (!items.length) {
+          container.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">No inventory data.</p>';
+          return;
+        }
+        container.innerHTML = items.map(p => `
+          <div class="flex items-center justify-between p-4 bg-brand-grayBg dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800">
+            <div class="flex items-center gap-4">
+              <img src="${p.image || 'https://placehold.co/80x80/FFC800/111111?text=Product'}" class="w-12 h-12 rounded-lg object-cover" onerror="this.src='https://placehold.co/80x80/FFC800/111111?text=Product'">
+              <div>
+                <p class="text-sm font-bold">${p.title}</p>
+                <p class="text-xs text-gray-500">${p.category || 'Uncategorized'}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="text-right">
+                <p class="text-xs text-gray-500">Price</p>
+                <p class="text-sm font-bold">₹${Number(p.price).toLocaleString('en-IN')}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-gray-500">Stock</p>
+                <p class="text-sm font-bold ${p.stock <= 5 ? 'text-red-600' : ''}">${p.stock}</p>
+              </div>
+              <button onclick="editProduct('${p.id}')" class="text-xs bg-brand-yellow text-brand-black px-3 py-1.5 rounded-lg hover:bg-brand-yellowHover transition">
+                <i class="fa-solid fa-pen mr-1"></i> Update
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load inventory:', err);
+      }
+    }
+
+    async function changePassword(e) {
+      e.preventDefault();
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const msgEl = document.getElementById('passwordMessage');
+
+      if (newPassword !== confirmPassword) {
+        msgEl.textContent = 'New passwords do not match';
+        msgEl.classList.remove('hidden', 'text-green-600');
+        msgEl.classList.add('text-red-600');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+        const data = await res.json();
+        msgEl.textContent = data.message || data.error;
+        msgEl.classList.remove('hidden');
+        msgEl.classList.toggle('text-green-600', res.ok);
+        msgEl.classList.toggle('text-red-600', !res.ok);
+        if (res.ok) {
+          document.getElementById('changePasswordForm').reset();
+        }
+      } catch (err) {
+        msgEl.textContent = 'Error: ' + err.message;
+        msgEl.classList.remove('hidden', 'text-green-600');
+        msgEl.classList.add('text-red-600');
+      }
+    }
+
+    async function updateAdminSettings(e) {
+      e.preventDefault();
+      const adminEmail = document.getElementById('adminEmail').value;
+      const adminPassword = document.getElementById('adminPassword').value;
+      const msgEl = document.getElementById('settingsMessage');
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/update-settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminEmail, adminPassword })
+        });
+        const data = await res.json();
+        msgEl.textContent = data.message || data.error;
+        msgEl.classList.remove('hidden');
+        msgEl.classList.toggle('text-green-600', res.ok);
+        msgEl.classList.toggle('text-red-600', !res.ok);
+        if (res.ok) {
+          document.getElementById('updateSettingsForm').reset();
+        }
+      } catch (err) {
+        msgEl.textContent = 'Error: ' + err.message;
+        msgEl.classList.remove('hidden', 'text-green-600');
+        msgEl.classList.add('text-red-600');
+      }
+    }
+
+    async function handleAdminLogout() {
+      try {
+        await fetch(`${API_BASE}/admin/logout`, { method: 'POST' });
+        window.location.href = '/admin';
+      } catch (err) {
+        console.error('Logout failed:', err);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDashboard();
+    });
+
+    function previewImage(input, previewId) {
+      const preview = document.getElementById(previewId);
+      if (!input.files || !input.files[0]) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        preview.src = e.target.result;
+        preview.classList.remove('hidden');
+        const hiddenInput = input.parentElement.querySelector('input[type="hidden"]');
+        if (hiddenInput) hiddenInput.value = e.target.result;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+
+    async function loadMedia() {
+      await loadCategories();
+      await loadSiteImages();
+    }
+
+    async function loadCategories() {
+      const container = document.getElementById('categoriesList');
+      try {
+        const res = await fetch(`${API_BASE}/categories`);
+        if (!res.ok) throw new Error('Failed to load categories');
+        const categories = await res.json();
+        if (!categories.length) {
+          container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">No categories yet. Add your first category above.</p>';
+          return;
+        }
+        container.innerHTML = categories.map(c => `
+          <div class="flex items-center justify-between p-3 bg-brand-grayBg dark:bg-zinc-800 rounded-xl border border-gray-200 dark:border-zinc-700">
+            <div class="flex items-center gap-3">
+              <img src="${c.image || 'https://placehold.co/60x60/FFC800/111111?text=Cat'}" class="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-zinc-700">
+              <div>
+                <p class="text-sm font-bold">${c.name}</p>
+                <p class="text-[10px] text-gray-500">${c.slug} • ${c.description || 'No description'}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick='editCategory(${JSON.stringify(c)})' class="text-xs font-bold px-3 py-1.5 rounded-lg bg-brand-yellow text-brand-black hover:bg-brand-yellowHover transition">Edit</button>
+              <button onclick="deleteCategory('${c.id}')" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<p class="text-xs text-red-500 text-center py-4">Failed to load categories: ${err.message}</p>`;
+      }
+    }
+
+    function showAddCategoryForm() {
+      document.getElementById('addCategoryPanel').classList.remove('hidden');
+    }
+
+    function hideAddCategoryForm() {
+      document.getElementById('addCategoryPanel').classList.add('hidden');
+    }
+
+    async function addCategory(e) {
+      e.preventDefault();
+      const imageInput = document.getElementById('catImageFile');
+      const imageData = document.getElementById('catImage').value || null;
+      const category = {
+        name: document.getElementById('catName').value,
+        slug: document.getElementById('catSlug').value || document.getElementById('catName').value.toLowerCase().replace(/\s+/g, '-'),
+        description: document.getElementById('catDesc').value,
+        image: imageData,
+        display_order: 0
+      };
+      try {
+        const res = await fetch(`${API_BASE}/categories`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(category)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          hideAddCategoryForm();
+          document.getElementById('addCategoryForm').reset();
+          document.getElementById('catImagePreview').classList.add('hidden');
+          loadCategories();
+          alert('Category added successfully');
+        } else {
+          alert('Failed to add category: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function editCategory(category) {
+      const newName = prompt('Category name:', category.name);
+      if (newName === null) return;
+      const newSlug = prompt('Slug:', category.slug);
+      if (newSlug === null) return;
+      const newDesc = prompt('Description:', category.description || '');
+      if (newDesc === null) return;
+      const newImage = prompt('Image URL (leave empty to keep current):', category.image || '');
+      if (newImage === null) return;
+      try {
+        const res = await fetch(`${API_BASE}/categories/${category.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newName,
+            slug: newSlug,
+            description: newDesc,
+            image: newImage || category.image
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          loadCategories();
+          alert('Category updated');
+        } else {
+          alert('Failed to update category: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deleteCategory(id) {
+      if (!confirm('Are you sure you want to delete this category?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/categories/${id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          loadCategories();
+          alert('Category deleted');
+        } else {
+          alert('Failed to delete category: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function loadSiteImages() {
+      const container = document.getElementById('siteImagesList');
+      try {
+        const res = await fetch(`${API_BASE}/categories`);
+        if (!res.ok) throw new Error('Failed to load site images');
+        const categories = await res.json();
+        const images = categories.filter(c => c.image).map(c => ({ key: c.slug, url: c.image, name: c.name }));
+        if (!images.length) {
+          container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">No category images uploaded yet.</p>';
+          return;
+        }
+        container.innerHTML = images.map(img => `
+          <div class="flex items-center justify-between p-3 bg-brand-grayBg dark:bg-zinc-800 rounded-xl border border-gray-200 dark:border-zinc-700">
+            <div class="flex items-center gap-3">
+              <img src="${img.url}" class="w-12 h-12 object-cover rounded-lg border border-gray-200 dark:border-zinc-700">
+              <div>
+                <p class="text-sm font-bold">${img.name}</p>
+                <p class="text-[10px] text-gray-500">${img.key}</p>
+              </div>
+            </div>
+            <button onclick="deleteSiteImage('${img.key}')" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition">Delete</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<p class="text-xs text-red-500 text-center py-4">Failed to load images: ${err.message}</p>`;
+      }
+    }
+
+    async function uploadSiteImage(e) {
+      e.preventDefault();
+      const key = document.getElementById('siteImageKey').value;
+      const imageData = document.getElementById('siteImage').value;
+      if (!key || !imageData) {
+        alert('Please select an image file');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/categories`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: key,
+            slug: key,
+            image: imageData,
+            description: 'Site image',
+            display_order: 0
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok || res.status === 201) {
+          document.getElementById('siteImageFile').value = '';
+          document.getElementById('siteImagePreview').classList.add('hidden');
+          document.getElementById('siteImageKey').value = '';
+          loadSiteImages();
+          alert('Image uploaded successfully');
+        } else {
+          alert('Failed to upload image: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deleteSiteImage(key) {
+      if (!confirm('Are you sure you want to delete this image?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/categories?slug=${encodeURIComponent(key)}`);
+        const categories = await res.json();
+        const cat = categories.find(c => c.slug === key);
+        if (!cat) return;
+        const delRes = await fetch(`${API_BASE}/categories/${cat.id}`, { method: 'DELETE' });
+        const data = await delRes.json().catch(() => ({}));
+        if (delRes.ok) {
+          loadSiteImages();
+          alert('Image deleted');
+        } else {
+          alert('Failed to delete image: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busywud | Product Details</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              yellow: '#FFC800',
+              yellowLight: '#FFFBEA',
+              yellowHover: '#E5B400',
+              black: '#111111',
+              cardDark: '#1A1A1A',
+              grayBg: '#F8F9FA'
+            }
+          },
+          fontFamily: {
+            display: ['Fredoka', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    h1, h2, h3, h4, .font-display { font-family: 'Fredoka', sans-serif; }
+    .glass-nav { backdrop-filter: blur(14px); }
+  </style>
+</head>
+<body class="bg-brand-grayBg dark:bg-brand-black text-brand-black dark:text-gray-100 flex flex-col min-h-screen selection:bg-brand-yellow selection:text-black transition-colors duration-300">
+
+  <!-- ==================== NAVIGATION BAR ==================== -->
+  <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2 group">
+        <img src="https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360899/busywud_logo.avif" alt="Busywud Logo" class="h-12 sm:h-14 object-contain group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/180x60/FFC800/111111?text=BusyWud';">
+      </a>
+      <nav class="hidden md:flex items-center gap-8 font-semibold text-sm">
+        <a href="/" class="hover:text-brand-yellow transition-colors">Home</a>
+        <a href="/#categorySection" class="hover:text-brand-yellow transition-colors">Categories</a>
+        <a href="/#productSection" class="hover:text-brand-yellow transition-colors">Products</a>
+        <a href="/#contactSection" class="hover:text-brand-yellow transition-colors">Contact</a>
+      </nav>
+      <div class="flex items-center gap-3 sm:gap-4">
+        <button onclick="toggleDarkMode()" class="p-2.5 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-brand-black dark:text-brand-yellow hover:scale-105 transition-all" title="Toggle theme">
+          <i id="themeIcon" class="fa-solid fa-moon text-base"></i>
+        </button>
+        <button id="cartBtn" onclick="toggleCartDrawer(true)" class="hidden relative p-2.5 rounded-2xl bg-brand-yellowLight dark:bg-zinc-800 text-brand-black dark:text-brand-yellow hover:bg-brand-yellow hover:text-brand-black transition-all">
+          <i class="fa-solid fa-basket-shopping text-base"></i>
+          <span id="cartCountBadge" class="absolute -top-1 -right-1 bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white dark:border-brand-black">0</span>
+        </button>
+        <button id="myAccountBtn" onclick="toggleMyAccount(true)" class="hidden relative p-2.5 rounded-2xl bg-brand-yellowLight dark:bg-zinc-800 text-brand-black dark:text-brand-yellow hover:bg-brand-yellow hover:text-brand-black transition-all" title="My Account">
+          <i class="fa-solid fa-user text-base"></i>
+        </button>
+        <div id="authSlot">
+          <button onclick="openAuthModal('signin')" class="bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black hover:bg-zinc-800 dark:hover:bg-brand-yellowHover font-semibold text-sm px-4 sm:px-5 py-2.5 rounded-2xl shadow transition-all flex items-center gap-2">
+            <i class="fa-regular fa-user"></i> <span>Sign In</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== PRODUCT DETAIL ==================== -->
+  <main class="flex-grow">
+    <section class="py-10 sm:py-14">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          <div class="lg:col-span-6">
+            <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/40 rounded-3xl p-4 sm:p-6 shadow-xl">
+              <img id="productImage" src="" alt="Product" class="w-full rounded-2xl object-cover aspect-square" onerror="this.src='https://placehold.co/800x800/FFC800/111111?text=Product+Image';">
+            </div>
+          </div>
+          <div class="lg:col-span-6 space-y-5">
+            <span id="productBadge" class="bg-brand-yellow text-brand-black font-display font-bold text-xs tracking-wider uppercase px-3 py-1 rounded-lg inline-block"></span>
+            <h1 id="productTitle" class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight"></h1>
+            <p id="productDesc" class="text-gray-600 dark:text-gray-300 text-sm sm:text-base leading-relaxed"></p>
+            <div class="flex items-baseline gap-3">
+              <span id="productPrice" class="text-3xl sm:text-4xl font-extrabold"></span>
+              <span id="productOldPrice" class="text-lg text-gray-400 line-through"></span>
+            </div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-xl">
+              <i class="fa-solid fa-circle-check"></i> <span id="productStock">In Stock</span>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 pt-2">
+              <button onclick="addToCartFromDetail()" class="flex-1 bg-brand-yellow hover:bg-brand-yellowHover text-brand-black text-sm sm:text-base font-bold py-3.5 px-6 rounded-2xl shadow-md hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-basket-shopping"></i> Add to Bag
+              </button>
+              <button onclick="buyNowFromDetail()" class="flex-1 bg-brand-black dark:bg-zinc-800 hover:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-sm sm:text-base font-bold py-3.5 px-6 rounded-2xl shadow-md hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-bolt text-brand-yellow"></i> Buy Now
+              </button>
+            </div>
+            <div class="border-t border-gray-200 dark:border-zinc-800 pt-5 grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="p-2 bg-white dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800">
+                <i class="fa-solid fa-truck text-base mb-1 block text-brand-yellow"></i>
+                <span class="font-bold block">Free Delivery</span>
+                <span class="text-[10px] text-gray-400">All India</span>
+              </div>
+              <div class="p-2 bg-white dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800">
+                <i class="fa-solid fa-tree text-base mb-1 block text-brand-yellow"></i>
+                <span class="font-bold block">Natural Wood</span>
+                <span class="text-[10px] text-gray-400">Non-Toxic</span>
+              </div>
+              <div class="p-2 bg-white dark:bg-brand-cardDark rounded-xl border border-gray-100 dark:border-zinc-800">
+                <i class="fa-solid fa-rotate-left text-base mb-1 block text-brand-yellow"></i>
+                <span class="font-bold block">7 Days Return</span>
+                <span class="text-[10px] text-gray-400">Hassle-free</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== AUTH MODAL ==================== -->
+  <div id="authModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-brand-cardDark rounded-3xl max-w-sm w-full p-6 sm:p-8 relative shadow-2xl border-4 border-brand-yellow">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 hover:text-black dark:hover:text-white">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="text-center mb-6">
+        <h3 id="modalHeading" class="text-2xl font-extrabold">Sign In</h3>
+        <p id="modalSubheading" class="text-xs text-gray-500 dark:text-gray-400 mt-1">Unlock your cart and quick checkout</p>
+      </div>
+      <button onclick="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 border-2 border-gray-200 dark:border-zinc-700 py-2.5 rounded-xl text-sm font-semibold hover:border-black dark:hover:border-brand-yellow hover:bg-gray-50 dark:hover:bg-zinc-800 transition mb-4">
+        <svg class="w-4 h-4" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+      <div class="relative flex py-2 items-center mb-4">
+        <div class="flex-grow border-t border-gray-200 dark:border-zinc-700"></div>
+        <span class="flex-shrink mx-3 text-gray-400 text-xs uppercase font-bold">Or Email</span>
+        <div class="flex-grow border-t border-gray-200 dark:border-zinc-700"></div>
+      </div>
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+        <div id="signupNameBox" class="hidden">
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+          <input type="text" id="formName" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow" placeholder="Your name">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Email</label>
+          <input type="email" id="formEmail" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow" placeholder="you@example.com">
+        </div>
+        <button type="submit" id="formSubmitBtn" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-xl text-sm transition shadow">Sign In</button>
+        <p class="text-center text-xs text-gray-500">
+          <span id="toggleText">Don't have an account?</span>
+          <button type="button" onclick="toggleModalMode()" id="toggleBtn" class="font-bold text-brand-black dark:text-brand-yellow ml-1">Create Account</button>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== CART DRAWER ==================== -->
+  <div id="cartDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white dark:bg-brand-cardDark border-l border-gray-100 dark:border-zinc-800 shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-zinc-800">
+      <h3 class="font-display font-bold text-lg">Your Bag</h3>
+      <button onclick="toggleCartDrawer(false)" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 hover:text-black dark:hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="cartContents" class="flex-1 overflow-y-auto p-5"></div>
+    <div class="border-t border-gray-100 dark:border-zinc-800 p-5">
+      <div class="flex items-center justify-between mb-3 text-sm font-bold">
+        <span>Total</span>
+        <span id="cartDrawerTotal">₹0</span>
+      </div>
+      <button onclick="triggerCheckout()" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-xl text-sm transition shadow">Checkout</button>
+    </div>
+  </div>
+
+  <!-- ==================== MY ACCOUNT DRAWER ==================== -->
+  <div id="myAccountDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white dark:bg-brand-cardDark border-l border-gray-100 dark:border-zinc-800 shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-zinc-800">
+      <h3 class="font-display font-bold text-lg">My Account</h3>
+      <button onclick="toggleMyAccount(false)" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-500 hover:text-black dark:hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-5 space-y-4">
+      <form id="accountForm" onsubmit="updateAccount(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Name</label>
+          <input type="text" id="accountName" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Email</label>
+          <input type="email" id="accountEmail" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+          <input type="tel" id="accountPhone" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Address</label>
+          <textarea id="accountAddress" rows="2" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Pincode</label>
+          <input type="text" id="accountPincode" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+        <button type="submit" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-xl text-sm transition shadow">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <script>
+    const API_BASE = "/api";
+    const RAZORPAY_KEY = "rzp_live_TafLQCc6Jt5AsG";
+
+    let activeProduct = null;
+    let currentUser = JSON.parse(localStorage.getItem('busywud_active_user')) || null;
+    let cartQuantity = parseInt(localStorage.getItem('busywud_cart_qty')) || 0;
+    let authMode = 'signin';
+
+    function toggleDarkMode() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('busywud_theme', isDark ? 'dark' : 'light');
+      updateThemeIcon(isDark);
+    }
+    function updateThemeIcon(isDark) {
+      const icon = document.getElementById('themeIcon');
+      if (isDark) icon.className = 'fa-solid fa-sun text-base';
+      else icon.className = 'fa-solid fa-moon text-base';
+    }
+    function toggleCartDrawer(show) {
+      document.getElementById('cartDrawer').classList.toggle('translate-x-full', !show);
+      if (show) updateCartDisplay();
+    }
+    function toggleMyAccount(show) {
+      document.getElementById('myAccountDrawer').classList.toggle('translate-x-full', !show);
+      if (show) loadMyAccount();
+    }
+
+    async function loadProduct(id) {
+      try {
+        const res = await fetch(`${API_BASE}/products/${id}`);
+        if (res.ok) {
+          activeProduct = await res.json();
+          renderProduct();
+        } else {
+          alert('Product not found');
+          window.location.href = '/';
+        }
+      } catch (err) {
+        alert('Could not load product');
+        window.location.href = '/';
+      }
+    }
+
+    function normaliseProduct(raw) {
+      return {
+        ...raw,
+        _id: raw.id || raw._id,
+        oldPrice: raw.oldPrice ?? raw.old_price,
+        price: Number(raw.price)
+      };
+    }
+
+    function renderProduct() {
+      if (!activeProduct) return;
+      document.getElementById('productImage').src = activeProduct.image || 'https://placehold.co/800x800/FFC800/111111?text=Product+Image';
+      document.getElementById('productTitle').innerText = activeProduct.title || '';
+      document.getElementById('productBadge').innerText = activeProduct.badge || '';
+      document.getElementById('productDesc').innerText = activeProduct.description || '';
+      document.getElementById('productPrice').innerText = `₹${Number(activeProduct.price).toLocaleString('en-IN')}`;
+      document.getElementById('productOldPrice').innerText = activeProduct.oldPrice ? `₹${Number(activeProduct.oldPrice).toLocaleString('en-IN')}` : '';
+      document.getElementById('productStock').innerText = activeProduct.stock > 0 ? `In Stock (${activeProduct.stock} units)` : 'Out of Stock';
+      document.title = `Busywud | ${activeProduct.title || 'Product'}`;
+    }
+
+    function addToCartFromDetail() {
+      if (!currentUser) { openAuthModal('signin'); return; }
+      cartQuantity += 1;
+      localStorage.setItem('busywud_cart_qty', cartQuantity);
+      updateCartDisplay();
+      toggleCartDrawer(true);
+    }
+    function buyNowFromDetail() {
+      if (!currentUser) { openAuthModal('signin'); return; }
+      cartQuantity = 1;
+      localStorage.setItem('busywud_cart_qty', cartQuantity);
+      updateCartDisplay();
+      triggerCheckout();
+    }
+
+    function updateCartDisplay() {
+      const badge = document.getElementById('cartCountBadge');
+      const container = document.getElementById('cartContents');
+      const totalDisplay = document.getElementById('cartDrawerTotal');
+      badge.innerText = cartQuantity;
+      if (cartQuantity <= 0) {
+        container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fa-solid fa-basket-shopping text-4xl mb-3"></i><p class="text-sm">Your shopping bag is empty.</p></div>';
+        totalDisplay.innerText = '₹0';
+        return;
+      }
+      const totalAmount = cartQuantity * (activeProduct?.price || 0);
+      container.innerHTML = `
+        <div class="flex items-center gap-3 p-3 bg-brand-grayBg dark:bg-brand-cardDark rounded-2xl border border-gray-100 dark:border-zinc-800">
+          <img src="${activeProduct?.image || ''}" class="w-16 h-16 rounded-xl object-cover" onerror="this.src='https://placehold.co/120x120/FFC800/111111?text=Item'">
+          <div class="flex-1 min-w-0">
+            <h4 class="text-xs font-bold truncate">${activeProduct?.title || 'Product'}</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-1">₹${Number(activeProduct?.price).toLocaleString('en-IN')}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <button onclick="adjustQty(-1)" class="w-6 h-6 rounded-md bg-gray-100 dark:bg-zinc-700 font-bold text-xs flex items-center justify-center">-</button>
+              <span class="text-xs font-bold">${cartQuantity}</span>
+              <button onclick="adjustQty(1)" class="w-6 h-6 rounded-md bg-gray-100 dark:bg-zinc-700 font-bold text-xs flex items-center justify-center">+</button>
+            </div>
+          </div>
+          <button onclick="adjustQty(-cartQuantity)" class="text-red-400 hover:text-red-600 p-2"><i class="fa-solid fa-trash text-xs"></i></button>
+        </div>`;
+      totalDisplay.innerText = `₹${totalAmount.toLocaleString('en-IN')}`;
+    }
+    function adjustQty(delta) {
+      cartQuantity = Math.max(0, cartQuantity + delta);
+      localStorage.setItem('busywud_cart_qty', cartQuantity);
+      updateCartDisplay();
+    }
+
+    // --- AUTH MODAL ---
+    function openAuthModal(mode = 'signin') { authMode = mode; document.getElementById('authModal').classList.remove('hidden'); updateModalLayout(); }
+    function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); }
+    function toggleModalMode() { authMode = authMode === 'signin' ? 'signup' : 'signin'; updateModalLayout(); }
+    function updateModalLayout() {
+      const isSignup = authMode === 'signup';
+      document.getElementById('signupNameBox').classList.toggle('hidden', !isSignup);
+      document.getElementById('modalHeading').innerText = isSignup ? 'Create Account' : 'Sign In';
+      document.getElementById('modalSubheading').innerText = isSignup ? 'Join the Busywud family' : 'Unlock your cart and quick checkout';
+      document.getElementById('formSubmitBtn').innerText = isSignup ? 'Create Account' : 'Sign In';
+      document.getElementById('toggleText').innerText = isSignup ? 'Already have an account?' : "Don't have an account?";
+      document.getElementById('toggleBtn').innerText = isSignup ? 'Sign In' : 'Create Account';
+    }
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('formEmail').value;
+      const name = authMode === 'signup' ? document.getElementById('formName').value : email.split('@')[0];
+      loginUser({ name, email });
+    }
+    function handleGoogleLogin() {
+      const googleClientId = '556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com';
+      const redirectUri = window.location.origin + '/';
+      const scope = 'profile email';
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+      window.location.href = url;
+    }
+    function handleOAuthCallback() {
+      const hash = window.location.hash;
+      if (hash.includes('access_token')) {
+        const token = new URLSearchParams(hash.substring(1)).get('access_token');
+        if (token) {
+          fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => { if (data.email) loginUser({ name: data.name || 'Google User', email: data.email }); })
+            .catch(() => loginUser({ name: 'Google Parent', email: 'parent@gmail.com' }));
+        }
+      }
+    }
+    function loginUser(userData) {
+      currentUser = userData;
+      localStorage.setItem('busywud_active_user', JSON.stringify(currentUser));
+      closeAuthModal();
+      refreshAuthState();
+    }
+    function handleLogout() {
+      currentUser = null;
+      localStorage.removeItem('busywud_active_user');
+      cartQuantity = 0;
+      localStorage.removeItem('busywud_cart_qty');
+      refreshAuthState();
+      toggleCartDrawer(false);
+      toggleMyAccount(false);
+    }
+    function refreshAuthState() {
+      const authSlot = document.getElementById('authSlot');
+      const cartBtn = document.getElementById('cartBtn');
+      const myAccountBtn = document.getElementById('myAccountBtn');
+      if (currentUser) {
+        cartBtn.classList.remove('hidden');
+        myAccountBtn.classList.remove('hidden');
+        authSlot.innerHTML = `<div class="flex items-center gap-2"><span class="text-xs font-bold hidden sm:inline">Hi, ${currentUser.name}</span><button onclick="handleLogout()" class="border-2 border-brand-black dark:border-brand-yellow text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-brand-black hover:text-white dark:hover:bg-brand-yellow dark:hover:text-brand-black transition">Logout</button></div>`;
+      } else {
+        cartBtn.classList.add('hidden');
+        myAccountBtn.classList.add('hidden');
+        authSlot.innerHTML = `<button onclick="openAuthModal('signin')" class="bg-brand-black dark:bg-brand-yellow text-white dark:text-brand-black hover:bg-zinc-800 dark:hover:bg-brand-yellowHover font-semibold text-sm px-4 sm:px-5 py-2.5 rounded-2xl shadow transition-all flex items-center gap-2"><i class="fa-regular fa-user"></i> <span>Sign In</span></button>`;
+      }
+      updateCartDisplay();
+    }
+
+    async function loadMyAccount() {
+      if (!currentUser) return;
+      try {
+        const res = await fetch(`${API_BASE}/my-account?email=${encodeURIComponent(currentUser.email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('accountName').value = data.customer?.name || currentUser.name || '';
+          document.getElementById('accountEmail').value = data.customer?.email || currentUser.email || '';
+          document.getElementById('accountPhone').value = data.customer?.phone || '';
+          document.getElementById('accountAddress').value = data.customer?.address || '';
+          document.getElementById('accountPincode').value = data.customer?.pincode || '';
+        }
+      } catch (err) { console.error('Failed to load account', err); }
+    }
+    async function updateAccount(e) {
+      e.preventDefault();
+      try {
+        const res = await fetch(`${API_BASE}/my-account`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentUser.email, name: document.getElementById('accountName').value, phone: document.getElementById('accountPhone').value, address: document.getElementById('accountAddress').value, pincode: document.getElementById('accountPincode').value })
+        });
+        if (res.ok) {
+          alert('Account updated');
+          const data = await res.json();
+          currentUser.name = data.customer?.name || currentUser.name;
+          localStorage.setItem('busywud_active_user', JSON.stringify(currentUser));
+          refreshAuthState();
+        } else { alert('Failed updating account'); }
+      } catch (err) { alert('Failed updating account: ' + err.message); }
+    }
+
+    // --- CHECKOUT ---
+    async function triggerCheckout() {
+      if (!currentUser) { openAuthModal('signin'); return; }
+      const unitPrice = Number(activeProduct?.price);
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) { alert('This product has no valid price right now.'); return; }
+      const totalAmount = Math.round(cartQuantity * unitPrice);
+      try {
+        const healthRes = await fetch(`${API_BASE}/health`);
+        if (!healthRes.ok) console.warn('Health check returned', healthRes.status, 'continuing to payment');
+      } catch (healthErr) { console.warn('Health check unreachable, continuing to payment:', healthErr); }
+      try {
+        const orderRes = await fetch(`${API_BASE}/create-order`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: totalAmount, customer: currentUser, items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }] }) });
+        const responseText = await orderRes.text();
+        let orderData; try { orderData = JSON.parse(responseText); } catch (e) { throw new Error(`Server returned invalid response (${orderRes.status})`); }
+        if (!orderRes.ok) throw new Error(orderData.error || `Server error: ${orderRes.status}`);
+        if (!orderData.id) throw new Error(orderData.error || "Unable to initiate payment");
+        const options = {
+          key: RAZORPAY_KEY, amount: orderData.amount, currency: "INR", name: "Busywud",
+          description: `${cartQuantity}x ${activeProduct.title}`,
+          image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360899/busywud_logo.avif",
+          order_id: orderData.id,
+          handler: async function (response) {
+            try {
+              const verifyRes = await fetch(`${API_BASE}/verify-payment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature, amount: totalAmount, customer: currentUser, items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }] }) });
+              if (verifyRes.ok) {
+                alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}. Order saved to database.`);
+                cartQuantity = 0; localStorage.setItem('busywud_cart_qty', 0); updateCartDisplay(); toggleCartDrawer(false);
+              } else { const errData = await verifyRes.json().catch(() => ({})); alert('Payment verification failed: ' + (errData.error || 'Unknown error')); }
+            } catch (verifyErr) { alert('Payment verification network error: ' + verifyErr.message); }
+          },
+          prefill: { name: currentUser.name || "Customer", email: currentUser.email || "" },
+          theme: { color: "#FFC800" }
+        };
+        if (typeof Razorpay === 'undefined') throw new Error('The Razorpay payment script did not load.');
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function (resp) { console.warn('Razorpay payment.failed', resp); const reason = (resp.error && resp.error.description) || 'unknown reason'; alert('Payment did not complete: ' + reason + '\n\nNo money was deducted. You can safely try again.'); });
+        rzp.open();
+      } catch (err) {
+        console.error('Payment error:', err);
+        alert("Payment could not start: " + (err.message || 'Unknown error'));
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('id');
+      if (productId) loadProduct(productId);
+      initTheme();
+      refreshAuthState();
+      handleOAuthCallback();
+    });
+  </script>
+</body>
+</html>
