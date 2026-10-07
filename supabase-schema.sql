@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS products (
   old_price INTEGER,
   stock INTEGER DEFAULT 0,
   image TEXT,
+  product_images TEXT[] DEFAULT '{}',
   description TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL

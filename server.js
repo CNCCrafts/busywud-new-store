@@ -63,6 +63,15 @@ app.get('/product/:id', (req, res) => {
   res.sendFile(path.join(__dirname, 'product.html'));
 });
 
+// Category page
+app.get('/category', (req, res) => {
+  res.sendFile(path.join(__dirname, 'category.html'));
+});
+
+app.get('/category/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, 'category.html'));
+});
+
 let razorpay = null;
 function getRazorpay() {
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -213,6 +222,10 @@ async function seedDefaultProduct() {
         old_price: 2499,
         stock: 50,
         image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp",
+        product_images: [
+          "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp",
+          "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board_2.webp"
+        ],
         description: "Crafted from 100% natural, non-toxic wood with smooth rounded edges."
       });
       
@@ -702,11 +715,12 @@ app.delete('/api/categories/:id', requireAdmin, async (req, res) => {
 
 app.get('/api/products', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
+    let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+    const category = req.query.category;
+    const badge = req.query.badge;
+    if (category) query = query.eq('category', category);
+    if (badge) query = query.eq('badge', badge);
+    const { data, error } = await query;
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
@@ -740,6 +754,7 @@ app.post('/api/products', requireAdmin, async (req, res) => {
       old_price: body.oldPrice !== undefined ? Number(body.oldPrice) : null,
       stock: body.stock !== undefined ? Number(body.stock) : 0,
       image: body.image,
+      product_images: Array.isArray(body.product_images) ? body.product_images : [],
       description: body.description,
       category: body.category
     };
@@ -768,6 +783,7 @@ app.put('/api/products/:id', requireAdmin, async (req, res) => {
     if (body.image !== undefined) updateData.image = body.image;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.category !== undefined) updateData.category = body.category;
+    if (body.product_images !== undefined) updateData.product_images = Array.isArray(body.product_images) ? body.product_images : [];
 
     const { data, error } = await supabase
       .from('products')

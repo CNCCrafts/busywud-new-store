@@ -80,8 +80,17 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           <div class="lg:col-span-6">
-            <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/40 rounded-3xl p-4 sm:p-6 shadow-xl">
-              <img id="productImage" src="" alt="Product" class="w-full rounded-2xl object-cover aspect-square" onerror="this.src='https://placehold.co/800x800/FFC800/111111?text=Product+Image';">
+            <div class="bg-white dark:bg-brand-cardDark border-2 border-brand-yellow/40 rounded-3xl p-3 sm:p-4 shadow-xl">
+              <div class="relative">
+                <img id="productImage" src="" alt="Product" class="w-full rounded-2xl object-cover aspect-square" onerror="this.src='https://placehold.co/800x800/FFC800/111111?text=Product+Image';">
+                <button id="carouselPrev" onclick="changeProductImage(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow flex items-center justify-center hover:bg-brand-yellow transition hidden">
+                  <i class="fa-solid fa-chevron-left text-sm"></i>
+                </button>
+                <button id="carouselNext" onclick="changeProductImage(1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 shadow flex items-center justify-center hover:bg-brand-yellow transition hidden">
+                  <i class="fa-solid fa-chevron-right text-sm"></i>
+                </button>
+              </div>
+              <div id="productImageThumbnails" class="flex gap-2 mt-3 overflow-x-auto pb-1 hidden"></div>
             </div>
           </div>
           <div class="lg:col-span-6 space-y-5">
@@ -263,6 +272,9 @@
       }
     }
 
+    let productImageIndex = 0;
+    let productImages = [];
+
     function normaliseProduct(raw) {
       return {
         ...raw,
@@ -272,9 +284,16 @@
       };
     }
 
+    function getProductImages() {
+      const main = activeProduct?.image ? [activeProduct.image] : [];
+      const extras = Array.isArray(activeProduct?.product_images) ? activeProduct.product_images : [];
+      return [...main, ...extras];
+    }
+
     function renderProduct() {
       if (!activeProduct) return;
-      document.getElementById('productImage').src = activeProduct.image || 'https://placehold.co/800x800/FFC800/111111?text=Product+Image';
+      productImages = getProductImages();
+      productImageIndex = 0;
       document.getElementById('productTitle').innerText = activeProduct.title || '';
       document.getElementById('productBadge').innerText = activeProduct.badge || '';
       document.getElementById('productDesc').innerText = activeProduct.description || '';
@@ -282,6 +301,39 @@
       document.getElementById('productOldPrice').innerText = activeProduct.oldPrice ? `₹${Number(activeProduct.oldPrice).toLocaleString('en-IN')}` : '';
       document.getElementById('productStock').innerText = activeProduct.stock > 0 ? `In Stock (${activeProduct.stock} units)` : 'Out of Stock';
       document.title = `Busywud | ${activeProduct.title || 'Product'}`;
+      updateProductCarousel();
+    }
+
+    function updateProductCarousel() {
+      const img = document.getElementById('productImage');
+      if (!productImages.length) {
+        img.src = 'https://placehold.co/800x800/FFC800/111111?text=Product+Image';
+        document.getElementById('carouselPrev').classList.add('hidden');
+        document.getElementById('carouselNext').classList.add('hidden');
+        document.getElementById('productImageThumbnails').classList.add('hidden');
+        return;
+      }
+      img.src = productImages[productImageIndex];
+      document.getElementById('carouselPrev').classList.toggle('hidden', productImages.length <= 1);
+      document.getElementById('carouselNext').classList.toggle('hidden', productImages.length <= 1);
+      const thumbContainer = document.getElementById('productImageThumbnails');
+      thumbContainer.classList.toggle('hidden', productImages.length <= 1);
+      thumbContainer.innerHTML = productImages.map((src, idx) => `
+        <button onclick="goToProductImage(${idx})" class="flex-none w-14 h-14 rounded-xl overflow-hidden border-2 ${idx === productImageIndex ? 'border-brand-yellow' : 'border-transparent'} hover:border-brand-yellow transition">
+          <img src="${src}" class="w-full h-full object-cover">
+        </button>
+      `).join('');
+    }
+
+    function changeProductImage(direction) {
+      if (!productImages.length) return;
+      productImageIndex = (productImageIndex + direction + productImages.length) % productImages.length;
+      updateProductCarousel();
+    }
+
+    function goToProductImage(index) {
+      productImageIndex = index;
+      updateProductCarousel();
     }
 
     function addToCartFromDetail() {

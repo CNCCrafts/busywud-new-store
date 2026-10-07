@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busywud | Category</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              yellow: '#FFC800',
+              yellowLight: '#FFFBEA',
+              yellowHover: '#E5B400',
+              black: '#111111',
+              cardDark: '#1A1A1A',
+              grayBg: '#F8F9FA'
+            }
+          },
+          fontFamily: {
+            display: ['Fredoka', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-nav {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+    }
+    .dark .glass-nav {
+      background: rgba(17, 17, 17, 0.85);
+    }
+  </style>
+</head>
+<body class="bg-brand-grayBg dark:bg-brand-black text-brand-black dark:text-gray-100 flex flex-col min-h-screen transition-colors">
+
+  <!-- ==================== NAVIGATION ==================== -->
+  <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2">
+        <span class="text-xl font-extrabold font-display tracking-tight">Busywud</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-6">
+        <a href="/#productSection" class="text-sm font-semibold hover:text-brand-yellow transition-colors">Products</a>
+        <a href="/#categorySection" class="text-sm font-semibold hover:text-brand-yellow transition-colors">Categories</a>
+        <a href="/#contactSection" class="text-sm font-semibold hover:text-brand-yellow transition-colors">Contact</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleCartDrawer(true)" class="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 transition">
+          <i class="fa-solid fa-basket-shopping text-lg"></i>
+          <span id="cartCountBadge" class="absolute -top-1 -right-1 bg-brand-yellow text-brand-black text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+        </button>
+        <button id="authBtn" onclick="handleAuthClick()" class="hidden border-2 border-brand-black dark:border-white text-brand-black dark:text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-brand-black hover:text-white dark:hover:bg-white dark:hover:text-brand-black transition">
+          Sign In
+        </button>
+        <div id="userMenu" class="hidden flex items-center gap-2">
+          <span id="userName" class="text-xs font-semibold"></span>
+          <button onclick="logout()" class="text-xs font-bold text-red-600 hover:text-red-700">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== CATEGORY HERO ==================== -->
+  <section class="bg-white dark:bg-zinc-950 border-b border-gray-100 dark:border-zinc-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+      <div class="flex items-center gap-3 mb-4">
+        <a href="/" class="text-xs font-semibold text-gray-500 hover:text-brand-yellow transition">Home</a>
+        <span class="text-gray-400">/</span>
+        <span id="categoryBreadcrumb" class="text-xs font-semibold text-brand-black dark:text-white">Category</span>
+      </div>
+      <h1 id="categoryTitle" class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2">Category</h1>
+      <p id="categoryDesc" class="text-sm text-gray-500 dark:text-gray-400">Browse our collection</p>
+    </div>
+  </section>
+
+  <!-- ==================== PRODUCTS GRID ==================== -->
+  <main class="flex-grow">
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+      <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+      <div id="noProductsMessage" class="hidden text-center py-12">
+        <p class="text-gray-500">No products found in this category.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== CART DRAWER ==================== -->
+  <div id="cartDrawerOverlay" onclick="toggleCartDrawer(false)" class="fixed inset-0 bg-black/50 z-40 hidden opacity-0 transition-opacity duration-300"></div>
+  <aside id="cartDrawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white dark:bg-brand-cardDark shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-zinc-800">
+      <h3 class="text-lg font-extrabold">Your Bag</h3>
+      <button onclick="toggleCartDrawer(false)" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div id="cartContents" class="flex-1 overflow-y-auto p-5"></div>
+    <div id="cartDrawerFooter" class="p-5 border-t border-gray-200 dark:border-zinc-800 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-semibold">Total</span>
+        <span id="cartDrawerTotal" class="text-lg font-extrabold">₹0</span>
+      </div>
+      <button onclick="triggerCheckout()" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-2xl shadow transition">Checkout</button>
+    </div>
+  </aside>
+
+  <!-- ==================== AUTH MODAL ==================== -->
+  <div id="authModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-black/60" onclick="closeAuthModal()"></div>
+    <div class="relative bg-white dark:bg-brand-cardDark rounded-3xl shadow-2xl w-full max-w-md mx-4 p-6 sm:p-8">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+      <div class="text-center mb-6">
+        <h2 id="authTitle" class="text-2xl font-extrabold mb-1">Welcome</h2>
+        <p class="text-xs text-gray-500">Sign in to continue shopping</p>
+      </div>
+      <form id="authForm" onsubmit="handleEmailAuth(event)" class="space-y-4">
+        <div id="authNameField" class="hidden">
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+          <input type="text" id="authName" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Email</label>
+          <input type="email" id="authEmail" required class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Password</label>
+          <input type="password" id="authPassword" required minlength="6" class="w-full border border-gray-300 dark:border-zinc-700 dark:bg-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-yellow">
+        </div>
+        <button type="submit" class="w-full bg-brand-yellow hover:bg-brand-yellowHover text-brand-black font-bold py-3 rounded-2xl shadow transition">Continue</button>
+      </form>
+      <div class="relative my-5">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200 dark:border-zinc-700"></div></div>
+        <div class="relative flex justify-center text-xs"><span class="bg-white dark:bg-brand-cardDark px-3 text-gray-500">or</span></div>
+      </div>
+      <button onclick="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 border-2 border-gray-200 dark:border-zinc-700 py-2.5 rounded-xl text-sm font-semibold hover:border-black dark:hover:border-brand-yellow hover:bg-gray-50 dark:hover:bg-zinc-800 transition mb-4">
+        <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Sign in with Google
+      </button>
+      <p class="text-center text-xs text-gray-500">
+        <span id="authSwitchText">Don't have an account?</span>
+        <button onclick="toggleAuthMode()" id="authSwitchBtn" class="text-brand-yellow font-bold ml-1 hover:underline">Sign up</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="bg-white dark:bg-zinc-950 border-t border-gray-100 dark:border-zinc-800 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p class="text-xs text-gray-500">&copy; <span id="year"></span> Busywud. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <script>
+    const API_BASE = '/api';
+    const API_BASE_URL = window.location.origin;
+    let currentUser = null;
+    let cartQuantity = 0;
+    let activeProduct = null;
+    let authMode = 'signin';
+
+    function updateCartDisplay() {
+      const badge = document.getElementById('cartCountBadge');
+      const container = document.getElementById('cartContents');
+      const totalDisplay = document.getElementById('cartDrawerTotal');
+      const footer = document.getElementById('cartDrawerFooter');
+      badge.innerText = cartQuantity;
+      badge.classList.toggle('hidden', cartQuantity <= 0);
+      if (cartQuantity <= 0) {
+        container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fa-solid fa-basket-shopping text-4xl mb-3"></i><p class="text-sm">Your shopping bag is empty.</p></div>';
+        totalDisplay.innerText = '₹0';
+        footer.classList.add('hidden');
+        return;
+      }
+      footer.classList.remove('hidden');
+      const totalAmount = cartQuantity * (activeProduct?.price || 0);
+      container.innerHTML = `
+        <div class="flex items-center gap-4 p-4 bg-brand-grayBg dark:bg-zinc-800 rounded-2xl border border-gray-100 dark:border-zinc-700">
+          <img src="${activeProduct?.image || 'https://placehold.co/120x120/FFC800/111111?text=Product'}" class="w-16 h-16 rounded-xl object-cover" onerror="this.src='https://placehold.co/120x120/FFC800/111111?text=Product'">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold truncate">${activeProduct?.title || 'Product'}</p>
+            <p class="text-xs text-gray-500">Qty: ${cartQuantity}</p>
+            <p class="text-sm font-extrabold">₹${totalAmount.toLocaleString('en-IN')}</p>
+          </div>
+        </div>
+      `;
+      totalDisplay.innerText = `₹${totalAmount.toLocaleString('en-IN')}`;
+    }
+
+    function toggleCartDrawer(open) {
+      const drawer = document.getElementById('cartDrawer');
+      const overlay = document.getElementById('cartDrawerOverlay');
+      if (open) {
+        drawer.classList.remove('translate-x-full');
+        overlay.classList.remove('hidden');
+        requestAnimationFrame(() => overlay.classList.remove('opacity-0'));
+      } else {
+        drawer.classList.add('translate-x-full');
+        overlay.classList.add('opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
+      }
+    }
+
+    function triggerCheckout() {
+      if (!activeProduct) return alert('No product selected');
+      const totalAmount = cartQuantity * activeProduct.price;
+      fetch(`${API_BASE}/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: totalAmount, customer: currentUser || {}, items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }] })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) return alert(data.error);
+        const rzp = new Razorpay({ key: data.key_id, amount: data.amount, currency: data.currency, order_id: data.orderId, name: 'Busywud', description: activeProduct.title, handler: (response) => {
+          fetch(`${API_BASE}/verify-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature, amount: totalAmount, customer: currentUser || {}, items: [{ title: activeProduct.title, price: activeProduct.price, qty: cartQuantity }] })
+          })
+          .then(r => r.json())
+          .then(result => {
+            if (result.success) {
+              alert('Payment successful! Order placed.');
+              cartQuantity = 0;
+              localStorage.setItem('busywud_cart_qty', cartQuantity);
+              updateCartDisplay();
+              toggleCartDrawer(false);
+            } else {
+              alert('Payment verification failed: ' + (result.error || 'Unknown error'));
+            }
+          });
+        }});
+        rzp.open();
+      })
+      .catch(err => alert('Checkout failed: ' + err.message));
+    }
+
+    // Auth
+    function handleAuthClick() { openAuthModal(currentUser ? null : 'signin'); }
+    function openAuthModal(mode = 'signin') {
+      if (!mode) return;
+      authMode = mode;
+      document.getElementById('authModal').classList.remove('hidden');
+      document.getElementById('authModal').classList.add('flex');
+      updateAuthUI();
+    }
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+      document.getElementById('authModal').classList.remove('flex');
+    }
+    function updateAuthUI() {
+      const isSignIn = authMode === 'signin';
+      document.getElementById('authTitle').innerText = isSignIn ? 'Welcome Back' : 'Create Account';
+      document.getElementById('authNameField').classList.toggle('hidden', isSignIn);
+      document.getElementById('authSwitchText').innerText = isSignIn ? "Don't have an account?" : 'Already have an account?';
+      document.getElementById('authSwitchBtn').innerText = isSignIn ? 'Sign up' : 'Sign in';
+    }
+    function toggleAuthMode() { authMode = authMode === 'signin' ? 'signup' : 'signin'; updateAuthUI(); }
+    function handleEmailAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+      const name = document.getElementById('authName').value;
+      loginUser({ name: name || email.split('@')[0], email });
+      closeAuthModal();
+    }
+    function loginUser(userData) {
+      currentUser = userData;
+      localStorage.setItem('busywud_user', JSON.stringify(userData));
+      refreshAuthState();
+    }
+    function logout() { currentUser = null; localStorage.removeItem('busywud_user'); refreshAuthState(); }
+    function refreshAuthState() {
+      const saved = localStorage.getItem('busywud_user');
+      if (saved) currentUser = JSON.parse(saved);
+      const authBtn = document.getElementById('authBtn');
+      const userMenu = document.getElementById('userMenu');
+      if (currentUser) {
+        authBtn.classList.add('hidden');
+        userMenu.classList.remove('hidden');
+        document.getElementById('userName').innerText = currentUser.name || currentUser.email;
+      } else {
+        authBtn.classList.remove('hidden');
+        userMenu.classList.add('hidden');
+      }
+      cartQuantity = parseInt(localStorage.getItem('busywud_cart_qty') || '0', 10);
+      updateCartDisplay();
+    }
+    function handleGoogleLogin() {
+      const googleClientId = document.querySelector('meta[name="google-client-id"]')?.content || '556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com';
+      const redirectUri = window.location.origin + '/';
+      const scope = 'profile email';
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+      window.location.href = url;
+    }
+    function handleOAuthCallback() {
+      const hash = window.location.hash;
+      if (hash.includes('access_token')) {
+        const token = new URLSearchParams(hash.substring(1)).get('access_token');
+        if (token) {
+          fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => { if (!res.ok) throw new Error('Failed to fetch user info'); return res.json(); })
+            .then(data => { if (data.email) { loginUser({ name: data.name || 'Google User', email: data.email }); window.location.hash = ''; } else { throw new Error('No email in user info'); } })
+            .catch(err => { console.error('Google OAuth error:', err); alert('Google sign-in failed. Please try again or use email sign-in.'); window.location.hash = ''; });
+        }
+      } else if (hash.includes('error=access_denied')) {
+        alert('Google sign-in was cancelled. Please try again or use email sign-in.');
+        window.location.hash = '';
+      }
+    }
+
+    // Products
+    async function loadCategoryProducts(categoryName) {
+      const grid = document.getElementById('productsGrid');
+      const noProducts = document.getElementById('noProductsMessage');
+      document.getElementById('categoryBreadcrumb').innerText = categoryName;
+      document.getElementById('categoryTitle').innerText = categoryName;
+      try {
+        const res = await fetch(`${API_BASE}/products?badge=${encodeURIComponent(categoryName)}`);
+        if (!res.ok) throw new Error('Failed to load products');
+        const products = (await res.json()).map(p => ({
+          ...p,
+          _id: p.id || p._id,
+          oldPrice: p.oldPrice ?? p.old_price,
+          price: Number(p.price)
+        }));
+        if (!products.length) {
+          grid.innerHTML = '';
+          noProducts.classList.remove('hidden');
+          return;
+        }
+        noProducts.classList.add('hidden');
+        grid.innerHTML = products.map(p => `
+          <a href="product.html?id=${p._id}" class="group bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
+            <div class="aspect-square overflow-hidden bg-gray-100 dark:bg-zinc-800">
+              <img src="${p.image}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x600/FFC800/111111?text=No+Image';">
+            </div>
+            <div class="p-4 flex flex-col flex-1">
+              <span class="text-[10px] font-bold text-brand-yellow uppercase tracking-wider mb-1">${p.badge || ''}</span>
+              <h3 class="text-sm sm:text-base font-bold leading-snug mb-2 line-clamp-2">${p.title}</h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3 flex-1">${p.description || ''}</p>
+              <div class="flex items-baseline gap-2 mt-auto">
+                <span class="text-lg font-extrabold">₹${Number(p.price).toLocaleString('en-IN')}</span>
+                ${p.oldPrice ? `<span class="text-xs text-gray-400 line-through">₹${Number(p.oldPrice).toLocaleString('en-IN')}</span>` : ''}
+              </div>
+              <div class="mt-3 w-full bg-brand-yellow text-brand-black text-xs font-bold py-2 rounded-xl text-center group-hover:bg-brand-yellowHover transition">View Details</div>
+            </div>
+          </a>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load category products:', err);
+        grid.innerHTML = '<p class="col-span-full text-center text-gray-500">Failed to load products.</p>';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('year').innerText = new Date().getFullYear();
+      refreshAuthState();
+      handleOAuthCallback();
+      const params = new URLSearchParams(window.location.search);
+      const category = params.get('name') || params.get('category') || 'All Products';
+      loadCategoryProducts(category);
+    });
+  </script>
+</body>
+</html>
