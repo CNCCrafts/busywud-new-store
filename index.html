@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Busywud | GlowLogic Montessori Sensory Board</title>
+  <meta name="google-client-id" content="556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com">
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -767,7 +768,7 @@
       try {
         const res = await fetch(`${API_BASE}/products`);
         if (res.ok) {
-          const products = await res.json();
+          const products = (await res.json()).map(normaliseProduct);
           renderProductList(products);
         }
       } catch (err) {
@@ -1203,7 +1204,7 @@
       try {
         const res = await fetch(`${API_BASE}/products`);
         if (res.ok) {
-          const products = await res.json();
+          const products = (await res.json()).map(normaliseProduct);
           renderProductsGrid(products);
         }
       } catch (err) {
@@ -1285,10 +1286,10 @@
     }
 
     function handleGoogleLogin() {
-      const googleClientId = '556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com';
+      const googleClientId = document.querySelector('meta[name="google-client-id"]')?.content || '556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com';
       const redirectUri = window.location.origin + '/';
       const scope = 'profile email';
-      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
       window.location.href = url;
     }
 
@@ -1300,16 +1301,27 @@
           fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { Authorization: `Bearer ${token}` }
           })
-          .then(res => res.json())
+          .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch user info');
+            return res.json();
+          })
           .then(data => {
             if (data.email) {
               loginUser({ name: data.name || 'Google User', email: data.email });
+              window.location.hash = '';
+            } else {
+              throw new Error('No email in user info');
             }
           })
-          .catch(() => {
-            loginUser({ name: 'Google Parent', email: 'parent@gmail.com' });
+          .catch(err => {
+            console.error('Google OAuth error:', err);
+            alert('Google sign-in failed. Please try again or use email sign-in.');
+            window.location.hash = '';
           });
         }
+      } else if (hash.includes('error=access_denied')) {
+        alert('Google sign-in was cancelled. Please try again or use email sign-in.');
+        window.location.hash = '';
       }
     }
 

@@ -99,22 +99,47 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
 async function sendOrderConfirmationEmail(order) {
   if (!transporter) return;
   try {
+    const itemsList = (order.items || [])
+      .map(item => `<li>${item.title} x${item.qty || 1} - ₹${Number(item.price).toLocaleString('en-IN')}</li>`)
+      .join('');
+    const customerHtml = `
+      <h2>Thank you for your order!</h2>
+      <p>Hi ${order.customer?.name || 'Customer'},</p>
+      <p>Your order has been placed successfully.</p>
+      <p><strong>Order ID:</strong> ${order.orderId}</p>
+      <p><strong>Amount:</strong> ₹${Number(order.amount).toLocaleString('en-IN')}</p>
+      <p><strong>Status:</strong> ${order.status}</p>
+      ${order.shipment?.waybill ? `<p><strong>Tracking:</strong> <a href="${order.shipment.trackingUrl || '#'}">${order.shipment.waybill}</a></p>` : ''}
+      <p>We'll notify you once it ships.</p>
+      <p>Thanks,<br>Busywud Team</p>
+    `;
+    const ownerHtml = `
+      <h2>New Order Received - Busywud</h2>
+      <p><strong>Order ID:</strong> ${order.orderId}</p>
+      <p><strong>Customer:</strong> ${order.customer?.name || 'Guest'} (${order.customer?.email || 'N/A'})</p>
+      <p><strong>Phone:</strong> ${order.customer?.phone || 'N/A'}</p>
+      <p><strong>Address:</strong> ${order.customer?.address || 'N/A'}, ${order.customer?.pincode || 'N/A'}</p>
+      <p><strong>Amount:</strong> ₹${Number(order.amount).toLocaleString('en-IN')}</p>
+      <p><strong>Status:</strong> ${order.status}</p>
+      <p><strong>Items:</strong></p>
+      <ul>${itemsList}</ul>
+      ${order.shipment?.waybill ? `<p><strong>Tracking:</strong> <a href="${order.shipment.trackingUrl || '#'}">${order.shipment.waybill}</a></p>` : ''}
+      <p>Please process this order promptly.</p>
+    `;
     await transporter.sendMail({
       from: '"Busywud Store" <' + (process.env.EMAIL_USER || 'busywud@gmail.com') + '>',
-      to: order.customer?.email || 'customer@busywud.com',
+      to: [order.customer?.email, 'orders@busywud.com'].filter(Boolean),
       subject: 'Order Confirmation - Busywud',
-      html: `
-        <h2>Thank you for your order!</h2>
-        <p>Hi ${order.customer?.name || 'Customer'},</p>
-        <p>Your order has been placed successfully.</p>
-        <p><strong>Order ID:</strong> ${order.orderId}</p>
-        <p><strong>Amount:</strong> â‚¹${order.amount}</p>
-        <p><strong>Status:</strong> ${order.status}</p>
-        ${order.shipment?.waybill ? `<p><strong>Tracking:</strong> <a href="${order.shipment.trackingUrl || '#'}">${order.shipment.waybill}</a></p>` : ''}
-        <p>We'll notify you once it ships.</p>
-        <p>Thanks,<br>Busywud Team</p>
-      `
+      html: customerHtml
     });
+    if (process.env.EMAIL_USER) {
+      await transporter.sendMail({
+        from: '"Busywud Store" <' + process.env.EMAIL_USER + '>',
+        to: 'orders@busywud.com',
+        subject: `New Order Received - ${order.orderId}`,
+        html: ownerHtml
+      });
+    }
   } catch (err) {
     console.error('Email send error:', err.message);
   }
@@ -122,6 +147,9 @@ async function sendOrderConfirmationEmail(order) {
 
 async function createParcelGuruShipment(orderData) {
   try {
+    const items = orderData.items || [];
+    const productDescription = items.map(i => `${i.title} x${i.qty || 1}`).join(', ') || 'Busywud Product';
+    const baseUrl = (process.env.PARCELGURU_URI || 'https://api.parcelguru.com').replace(/\/$/, '');
     const payload = {
       api_key: process.env.PARCELGURU_API_KEY,
       order_id: orderData.orderId,
@@ -133,10 +161,11 @@ async function createParcelGuruShipment(orderData) {
       payment_type: "Prepaid",
       declared_value: orderData.amount,
       weight_kg: 0.8,
-      product_description: "Busywud GlowLogic Wooden Board"
+      product_description: productDescription
     };
 
-    const response = await fetch("https://api.parcelguru.com/api/v1/shipments/create", {
+    console.log('Creating ParcelGuru shipment for order:', orderData.orderId, payload);
+    const response = await fetch(`${baseUrl}/api/v1/shipments/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -146,6 +175,10 @@ async function createParcelGuruShipment(orderData) {
     });
 
     const result = await response.json();
+    console.log('ParcelGuru response:', response.status, result);
+    if (!response.ok) {
+      console.error('ParcelGuru API error:', result);
+    }
     return {
       waybill: result.waybill || result.awb_code || `PG-${Date.now()}`,
       shipmentId: result.shipment_id || result.id || "",

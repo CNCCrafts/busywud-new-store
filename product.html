@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Busywud | Product Details</title>
+  <meta name="google-client-id" content="556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -241,17 +242,23 @@
     }
 
     async function loadProduct(id) {
+      console.log('Loading product with ID:', id);
       try {
-        const res = await fetch(`${API_BASE}/products/${id}`);
+        const res = await fetch(`${API_BASE}/products/${encodeURIComponent(id)}`);
+        console.log('API response status:', res.status);
         if (res.ok) {
           activeProduct = await res.json();
+          console.log('Product loaded:', activeProduct);
           renderProduct();
         } else {
-          alert('Product not found');
+          const text = await res.text().catch(() => 'Unknown error');
+          console.error('Product not found:', res.status, text);
+          alert(`Product not found (status ${res.status}). The product may have been removed or the link is invalid.`);
           window.location.href = '/';
         }
       } catch (err) {
-        alert('Could not load product');
+        console.error('Could not load product:', err);
+        alert('Could not load product: ' + err.message);
         window.location.href = '/';
       }
     }
@@ -345,22 +352,42 @@
       loginUser({ name, email });
     }
     function handleGoogleLogin() {
-      const googleClientId = '556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com';
+      const googleClientId = document.querySelector('meta[name="google-client-id"]')?.content || '556041111426-qdka5l6bavrqpvkahcd73k7vo22bsrrm.apps.googleusercontent.com';
       const redirectUri = window.location.origin + '/';
       const scope = 'profile email';
-      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
       window.location.href = url;
     }
+
     function handleOAuthCallback() {
       const hash = window.location.hash;
       if (hash.includes('access_token')) {
         const token = new URLSearchParams(hash.substring(1)).get('access_token');
         if (token) {
-          fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => res.json())
-            .then(data => { if (data.email) loginUser({ name: data.name || 'Google User', email: data.email }); })
-            .catch(() => loginUser({ name: 'Google Parent', email: 'parent@gmail.com' }));
+          fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch user info');
+            return res.json();
+          })
+          .then(data => {
+            if (data.email) {
+              loginUser({ name: data.name || 'Google User', email: data.email });
+              window.location.hash = '';
+            } else {
+              throw new Error('No email in user info');
+            }
+          })
+          .catch(err => {
+            console.error('Google OAuth error:', err);
+            alert('Google sign-in failed. Please try again or use email sign-in.');
+            window.location.hash = '';
+          });
         }
+      } else if (hash.includes('error=access_denied')) {
+        alert('Google sign-in was cancelled. Please try again or use email sign-in.');
+        window.location.hash = '';
       }
     }
     function loginUser(userData) {
@@ -472,7 +499,13 @@
     window.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
       const productId = params.get('id');
-      if (productId) loadProduct(productId);
+      console.log('Product ID from URL:', productId);
+      if (productId) {
+        loadProduct(productId);
+      } else {
+        alert('No product ID found in URL. Redirecting to home.');
+        window.location.href = '/';
+      }
       initTheme();
       refreshAuthState();
       handleOAuthCallback();

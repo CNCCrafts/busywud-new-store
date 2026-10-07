@@ -485,7 +485,11 @@
       try {
         const res = await fetch(`${API_BASE}/products`);
         if (!res.ok) throw new Error('Failed to load products');
-        const products = await res.json();
+        const products = (await res.json()).map(p => ({
+          ...p,
+          _id: p.id || p._id,
+          oldPrice: p.oldPrice ?? p.old_price
+        }));
         const container = document.getElementById('productsList');
         if (!products.length) {
           container.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">No products found.</p>';
