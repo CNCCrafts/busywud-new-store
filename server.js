@@ -369,6 +369,11 @@ app.get('/api/health', async (req, res) => {
       dbReadTest = 'read_failed: ' + err.message;
     }
 
+    // Re-verify Razorpay if startup check failed, so health reflects current state.
+    if (razorpayAuthState === 'rejected' || razorpayAuthState === 'unchecked') {
+      await verifyRazorpayCredentialsQuiet();
+    }
+
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -1117,20 +1122,31 @@ async function verifyRazorpayCredentials() {
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return;
 
   try {
-    const account = await getRazorpay().accounts.fetch();
+    const account = await getRazorpay().payments.all({ count: 1 });
     razorpayAuthState = 'valid';
     console.log(`Razorpay credentials valid (mode: ${process.env.RAZORPAY_KEY_ID.split('_')[1]})`);
-
-    if (account && account.charge_enabled === false) {
-      razorpayAuthState = 'valid_charges_disabled';
-      console.warn('WARNING: Razorpay account exists but charges are disabled for it. Live payments will be rejected.');
-    }
   } catch (err) {
     const info = classifyRazorpayError(err);
     razorpayAuthState = 'rejected';
     console.error('WARNING: Razorpay credentials REJECTED: ' + info.description);
     console.error('         Checkout will fail for every customer until RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are corrected.');
     console.error('         Copy both values from Razorpay Dashboard -> Settings -> API Keys, making sure they are from the same pair and mode.');
+  }
+}
+
+// Lightweight re-check used by /api/health so the state is always current.
+async function verifyRazorpayCredentialsQuiet() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    razorpayAuthState = 'missing_keys';
+    return;
+  }
+  try {
+    await getRazorpay().payments.all({ count: 1 });
+    razorpayAuthState = 'valid';
+  } catch (err) {
+    const info = classifyRazorpayError(err);
+    razorpayAuthState = 'rejected';
+    console.debug('Razorpay auth still rejected:', info.description);
   }
 }
 
