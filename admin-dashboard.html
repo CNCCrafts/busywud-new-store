@@ -647,7 +647,7 @@
               </div>
             </div>
           </div>
-        `).join('');
+        `}).join('');
       } catch (err) {
         console.error('Failed to load products:', err);
       }
@@ -855,6 +855,10 @@
       } catch (err) {
         console.error('Failed to load inventory:', err);
       }
+    }
+
+    function loadSettings() {
+      // Settings section contains static forms; nothing to load dynamically.
     }
 
     async function changePassword(e) {
