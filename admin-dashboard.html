@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪵</text></svg>">
+  <link rel="icon" type="image/png" href="https://placehold.co/32x32/FFC800/111111?text=B" sizes="32x32">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -54,7 +56,11 @@
   <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center gap-6">
-        <h1 class="text-xl font-extrabold font-display">Admin Dashboard</h1>
+        <a href="/" class="flex items-center gap-2">
+          <img src="https://placehold.co/120x40/FFC800/111111?text=Busywud" alt="Busywud" class="h-8 sm:h-9 w-auto dark:hidden">
+          <img src="https://placehold.co/120x40/111111/FFC800?text=Busywud" alt="Busywud" class="h-8 sm:h-9 w-auto hidden dark:block">
+          <span class="text-xl font-extrabold font-display tracking-tight">Admin Dashboard</span>
+        </a>
         <!-- Mobile menu toggle -->
         <button id="mobileMenuToggle" class="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition" aria-label="Toggle navigation">
           <i class="fa-solid fa-bars text-xl"></i>
@@ -664,6 +670,17 @@
       e.preventDefault();
       const base64Image = document.getElementById('addImgBase64').value;
       const urlImage = document.getElementById('addImg').value;
+      const categoryDisplay = document.getElementById('addCategory').value || 'busy-board';
+      // Map display name to slug
+      const categorySlugMap = {
+        'Busy Board': 'busy-board',
+        'Wooden Toys': 'wooden-toys',
+        'Magnets': 'magnets',
+        'Festival Special': 'festival-special',
+        'Craft Special': 'craft-special',
+        'Educational': 'educational',
+        'Custom': 'custom'
+      };
       const product = {
         title: document.getElementById('addTitle').value,
         badge: document.getElementById('addBadge').value,
@@ -672,7 +689,7 @@
         stock: Number(document.getElementById('addStock').value) || 0,
         image: base64Image || urlImage,
         description: document.getElementById('addDesc').value,
-        category: document.getElementById('addCategory').value || 'busy-board'
+        category: categorySlugMap[categoryDisplay] || categoryDisplay
       };
       try {
         const res = await fetch(`${API_BASE}/products`, {

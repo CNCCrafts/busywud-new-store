@@ -10,6 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪵</text></svg>">
+  <link rel="icon" type="image/png" href="https://placehold.co/32x32/FFC800/111111?text=B" sizes="32x32">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -49,6 +51,8 @@
   <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2">
+        <img src="https://placehold.co/120x40/FFC800/111111?text=Busywud" alt="Busywud" class="h-8 sm:h-9 w-auto dark:hidden">
+        <img src="https://placehold.co/120x40/111111/FFC800?text=Busywud" alt="Busywud" class="h-8 sm:h-9 w-auto hidden dark:block">
         <span class="text-xl font-extrabold font-display tracking-tight">Busywud</span>
       </a>
       <nav class="hidden md:flex items-center gap-6">
@@ -319,20 +323,48 @@
     }
 
     // Products
+    // Category name mapping: display name -> category field value
+    const CATEGORY_MAP = {
+      'Wooden Toys': 'wooden-toys',
+      'Magnets': 'magnets',
+      'Festival Special': 'festival-special',
+      'Busy Board': 'busy-board',
+      'Craft Special': 'craft-special',
+      'Educational': 'educational',
+      'Custom': 'custom'
+    };
+
     async function loadCategoryProducts(categoryName) {
       const grid = document.getElementById('productsGrid');
       const noProducts = document.getElementById('noProductsMessage');
       document.getElementById('categoryBreadcrumb').innerText = categoryName;
       document.getElementById('categoryTitle').innerText = categoryName;
       try {
-        const res = await fetch(`${API_BASE}/products?badge=${encodeURIComponent(categoryName)}`);
+        // Map display name to category field value
+        const categoryValue = CATEGORY_MAP[categoryName] || categoryName.toLowerCase().replace(/\s+/g, '-');
+        
+        let res = await fetch(`${API_BASE}/products?category=${encodeURIComponent(categoryValue)}`);
         if (!res.ok) throw new Error('Failed to load products');
-        const products = (await res.json()).map(p => ({
+        let products = (await res.json()).map(p => ({
           ...p,
           _id: p.id || p._id,
           oldPrice: p.oldPrice ?? p.old_price,
           price: Number(p.price)
         }));
+        
+        // If no results by category, try badge filter as fallback
+        if (!products.length) {
+          res = await fetch(`${API_BASE}/products?badge=${encodeURIComponent(categoryName)}`);
+          if (res.ok) {
+            products = (await res.json()).map(p => ({
+              ...p,
+              _id: p.id || p._id,
+              oldPrice: p.oldPrice ?? p.old_price,
+              price: Number(p.price)
+            }));
+          }
+        }
+        
         if (!products.length) {
           grid.innerHTML = '';
           noProducts.classList.remove('hidden');
