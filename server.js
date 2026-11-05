@@ -222,10 +222,6 @@ async function seedDefaultProduct() {
         old_price: 2499,
         stock: 50,
         image: "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp",
-        product_images: [
-          "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board.webp",
-          "https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360758/glowlogic_busy_board_2.webp"
-        ],
         description: "Crafted from 100% natural, non-toxic wood with smooth rounded edges."
       });
       
@@ -758,8 +754,7 @@ app.post('/api/products', requireAdmin, async (req, res) => {
       price: Number(body.price),
       old_price: body.oldPrice !== undefined ? Number(body.oldPrice) : null,
       stock: body.stock !== undefined ? Number(body.stock) : 0,
-      image: body.image,
-      product_images: Array.isArray(body.product_images) ? body.product_images : [],
+      image: body.image || null,
       description: body.description,
       category: body.category
     };
@@ -785,10 +780,9 @@ app.put('/api/products/:id', requireAdmin, async (req, res) => {
     if (body.price !== undefined) updateData.price = Number(body.price);
     if (body.oldPrice !== undefined) updateData.old_price = Number(body.oldPrice);
     if (body.stock !== undefined) updateData.stock = Number(body.stock);
-    if (body.image !== undefined) updateData.image = body.image;
+    if (body.image !== undefined) updateData.image = body.image || null;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.category !== undefined) updateData.category = body.category;
-    if (body.product_images !== undefined) updateData.product_images = Array.isArray(body.product_images) ? body.product_images : [];
 
     const { data, error } = await supabase
       .from('products')

@@ -17,8 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪵</text></svg>">
-  <link rel="icon" type="image/png" href="https://placehold.co/32x32/FFC800/111111?text=B" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 
   <script>
     tailwind.config = {
@@ -76,7 +75,8 @@
       
       <!-- Brand Logo -->
       <a href="#" onclick="navigateTo('store')" class="flex items-center gap-2 group">
-        <img src="https://res.cloudinary.com/epwhlldb/image/upload/f_auto,q_auto/v1788360899/busywud_logo.avif" alt="Busywud Logo" class="h-12 sm:h-14 object-contain group-hover:scale-105 transition duration-300" onerror="this.src='https://placehold.co/180x60/FFC800/111111?text=BusyWud';">
+        <img src="/assets/logo-light.svg" alt="Busywud Logo" class="h-10 sm:h-12 object-contain group-hover:scale-105 transition duration-300 dark:hidden">
+        <img src="/assets/logo-dark.svg" alt="Busywud Logo" class="hidden h-10 sm:h-12 object-contain group-hover:scale-105 transition duration-300 dark:block">
       </a>
 
       <!-- Navigation Links -->
@@ -690,7 +690,29 @@
       description: "Crafted from 100% natural, non-toxic wood with smooth rounded edges."
     };
 
-    let currentUser = JSON.parse(localStorage.getItem('busywud_active_user')) || null;
+    const AUTH_STORAGE_KEY = 'busywud_active_user';
+    const LEGACY_AUTH_STORAGE_KEY = 'busywud_user';
+    function getStoredUser() {
+      try {
+        const primary = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (primary) return JSON.parse(primary);
+        const legacy = localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
+        if (legacy) return JSON.parse(legacy);
+      } catch (err) {
+        console.warn('Unable to read stored user:', err);
+      }
+      return null;
+    }
+    function saveStoredUser(userData) {
+      if (!userData) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+      localStorage.setItem(LEGACY_AUTH_STORAGE_KEY, JSON.stringify(userData));
+    }
+    let currentUser = getStoredUser();
     let cartQuantity = parseInt(localStorage.getItem('busywud_cart_qty')) || 0;
     let authMode = 'signin';
 
@@ -1335,14 +1357,14 @@
 
     function loginUser(userData) {
       currentUser = userData;
-      localStorage.setItem('busywud_active_user', JSON.stringify(currentUser));
+      saveStoredUser(currentUser);
       closeAuthModal();
       refreshAuthState();
     }
 
     function handleLogout() {
       currentUser = null;
-      localStorage.removeItem('busywud_active_user');
+      saveStoredUser(null);
       cartQuantity = 0;
       localStorage.removeItem('busywud_cart_qty');
       refreshAuthState();
@@ -1413,7 +1435,7 @@
         if (res.ok) {
           const data = await res.json();
           currentUser = { ...currentUser, ...data.customer };
-          localStorage.setItem('busywud_active_user', JSON.stringify(currentUser));
+          saveStoredUser(currentUser);
           alert('Account updated successfully!');
           refreshAuthState();
         }

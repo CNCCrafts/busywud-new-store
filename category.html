@@ -10,8 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪵</text></svg>">
-  <link rel="icon" type="image/png" href="https://placehold.co/32x32/FFC800/111111?text=B" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -51,9 +50,8 @@
   <header class="sticky top-0 z-40 glass-nav bg-white/90 dark:bg-brand-black/90 border-b border-gray-100 dark:border-zinc-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2">
-        <img src="https://placehold.co/120x40/FFC800/111111?text=Busywud" alt="Busywud" class="h-8 sm:h-9 w-auto dark:hidden">
-        <img src="https://placehold.co/120x40/111111/FFC800?text=Busywud" alt="Busywud" class="h-8 sm:h-9 w-auto hidden dark:block">
-        <span class="text-xl font-extrabold font-display tracking-tight">Busywud</span>
+        <img src="/assets/logo-light.svg" alt="Busywud" class="h-8 sm:h-9 w-auto dark:hidden">
+        <img src="/assets/logo-dark.svg" alt="Busywud" class="h-8 sm:h-9 w-auto hidden dark:block">
       </a>
       <nav class="hidden md:flex items-center gap-6">
         <a href="/#productSection" class="text-sm font-semibold hover:text-brand-yellow transition-colors">Products</a>
@@ -166,10 +164,34 @@
   <script>
     const API_BASE = '/api';
     const API_BASE_URL = window.location.origin;
-    let currentUser = null;
+    const AUTH_STORAGE_KEY = 'busywud_active_user';
+    const LEGACY_AUTH_STORAGE_KEY = 'busywud_user';
+    let currentUser = getStoredUser();
     let cartQuantity = 0;
     let activeProduct = null;
     let authMode = 'signin';
+
+    function getStoredUser() {
+      try {
+        const primary = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (primary) return JSON.parse(primary);
+        const legacy = localStorage.getItem(LEGACY_AUTH_STORAGE_KEY);
+        if (legacy) return JSON.parse(legacy);
+      } catch (err) {
+        console.warn('Unable to read stored user:', err);
+      }
+      return null;
+    }
+
+    function saveStoredUser(userData) {
+      if (!userData) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+      localStorage.setItem(LEGACY_AUTH_STORAGE_KEY, JSON.stringify(userData));
+    }
 
     function updateCartDisplay() {
       const badge = document.getElementById('cartCountBadge');
@@ -279,15 +301,17 @@
     }
     function loginUser(userData) {
       currentUser = userData;
-      localStorage.setItem('busywud_user', JSON.stringify(userData));
+      saveStoredUser(userData);
       refreshAuthState();
     }
-    function logout() { currentUser = null; localStorage.removeItem('busywud_user'); refreshAuthState(); }
+    function logout() { currentUser = null; saveStoredUser(null); refreshAuthState(); }
     function refreshAuthState() {
-      const saved = localStorage.getItem('busywud_user');
-      if (saved) currentUser = JSON.parse(saved);
+      const saved = getStoredUser();
+      if (saved) currentUser = saved;
       const authBtn = document.getElementById('authBtn');
       const userMenu = document.getElementById('userMenu');
+      if (!authBtn || !userMenu) return;
+
       if (currentUser) {
         authBtn.classList.add('hidden');
         userMenu.classList.remove('hidden');
@@ -296,6 +320,7 @@
         authBtn.classList.remove('hidden');
         userMenu.classList.add('hidden');
       }
+
       cartQuantity = parseInt(localStorage.getItem('busywud_cart_qty') || '0', 10);
       updateCartDisplay();
     }
@@ -402,6 +427,7 @@
       const category = params.get('name') || params.get('category') || 'All Products';
       loadCategoryProducts(category);
     });
+    window.addEventListener('pageshow', refreshAuthState);
   </script>
 </body>
 </html>

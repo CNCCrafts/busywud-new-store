@@ -1,0 +1,13 @@
+<svg width="220" height="64" viewBox="0 0 220 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="220" height="64" rx="14" fill="none"/>
+  <g transform="translate(8 8)">
+    <rect x="0" y="0" width="48" height="48" rx="12" fill="#FFC800"/>
+    <path d="M12 31.5V16.5C12 15.12 13.12 14 14.5 14H17.5V34.5H14.5C13.12 34.5 12 33.38 12 31.5Z" fill="#111111"/>
+    <path d="M22.5 14H25.5V34.5H22.5V14Z" fill="#111111"/>
+    <path d="M34 14H37C38.38 14 39.5 15.12 39.5 16.5V31.5C39.5 33.38 38.38 34.5 37 34.5H34V14Z" fill="#111111"/>
+    <path d="M17.5 9.5C17.5 8.12 18.62 7 20 7H28C29.38 7 30.5 8.12 30.5 9.5V12H17.5V9.5Z" fill="#111111"/>
+    <circle cx="23" cy="25" r="6" fill="#111111"/>
+    <circle cx="23" cy="25" r="2.5" fill="#FFC800"/>
+  </g>
+  <text x="68" y="40" fill="#F5F5F5" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" letter-spacing="1">BUSYWUD</text>
+</svg>
